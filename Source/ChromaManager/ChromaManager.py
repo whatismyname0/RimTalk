@@ -3,7 +3,7 @@ ChromaDB manager for RimTalk conversation storage and retrieval.
 Handles per-save database management, storing conversations with metadata,
 and querying relevant historical context for prompt enrichment.
 """
-
+import fuzzywuzzy
 import chromadb
 import hashlib
 import json
@@ -248,9 +248,12 @@ class ChromaDBManager:
                             id2 = id
                             id2=id2.replace("_short","")
                             if meta.get("talk_type") == "info":
-                                if query_texts[i] not in doc2:
+                                lenS=len(query_texts[i])
+                                substrings=[doc2[i:i+lenS]for i in range(len(doc2)-lenS+1)]
+                                best, score = fuzzywuzzy.process.extractOne(query_texts[i], substrings, scorer=fuzzywuzzy.fuzz.ratio)
+                                if score<70:
                                     continue
-
+                                
                             # Deduplicate based on unique ID
                             if id2 not in all_results_map:
                                 # Normalize distance (L2 norm) to relevance score (e.g., 1.0 - distance/2.0)
@@ -273,7 +276,7 @@ class ChromaDBManager:
             # 3. Query 'info' (background) with ALL keywords (no speaker/listener filter)
             info_results = collection.query(
                 query_texts=query_texts,
-                n_results=min(40, collection.count()), # Query more results for better merging
+                n_results=min(50, collection.count()), # Query more results for better merging
                 where={"talk_type": "info"}
             )
             process_batch_results(info_results)
@@ -300,7 +303,7 @@ class ChromaDBManager:
             # because the 'listeners' metadata is stored as a JSON string, not a direct list field.
             filtered_results = collection.query(
                 query_texts=query_texts,
-                n_results=min(40, collection.count()), 
+                n_results=min(10, collection.count()), 
                 where=where_filter
             )
             process_batch_results(filtered_results)
