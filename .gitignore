@@ -10,6 +10,8 @@ PublishedFileId.txt
 Folder.DotSettings.user
 Directory.Build.props
 *.sh
+/ChromaManager/.venv
+/ChromaManager/__pycache__
 
 ## Interaction bubble library
 Libs/Bubbles.dll
