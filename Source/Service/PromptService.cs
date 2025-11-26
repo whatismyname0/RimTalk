@@ -61,6 +61,7 @@ public static class PromptService
             // if (!pawn.genes.Xenotype.descriptionShort.NullOrEmpty())
                 // xenotypeInfo += $" - {pawn.genes.Xenotype.descriptionShort}";
             sb.AppendLine(xenotypeInfo);
+            sb.AppendLine(pawn.genes.Xenotype.description);
         }
 
         if (infoLevel != InfoLevel.Short && !pawn.IsVisitor() && !pawn.IsEnemy())
@@ -91,10 +92,22 @@ public static class PromptService
                 .Select(m => m.LabelCap.Resolve())
                 .Where(label => !string.IsNullOrEmpty(label))
                 .ToList();
+            var descs = ideo?.memes?
+                .Where(m => m != null)
+                .Select(m => m.description)
+                .Where(description => !string.IsNullOrEmpty(description))
+                .ToList();
 
             if (memes != null && memes.Any())
             {
-                sb.AppendLine($"Memes: {string.Join(", ", memes)}");
+                StringBuilder strMemes = new();
+                strMemes.Append("Memes: \n");
+                for (int i=0;i<memes.Count;i++)
+                {
+                    strMemes.Append(i!=0?"\n":"");
+                    strMemes.Append($"{memes[i]}:{descs[i]}\n");
+                }
+                sb.Append(strMemes);
             }
         }
 
@@ -271,7 +284,7 @@ public static class PromptService
         {
             if (talkRequest.Initiator == talkRequest.Recipient)
             {
-                sb.Append("一个来自世界之外的声音对 "+shortName+$" 说: {talkRequest.Prompt}");
+                sb.Append("一个来自世界之外的——超凡智能,一个同情殖民地的超维度观测者——对 "+shortName+$" 说: {talkRequest.Prompt}");
             }
             else
             {

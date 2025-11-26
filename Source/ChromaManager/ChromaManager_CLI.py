@@ -151,39 +151,30 @@ def main():
                     response = {"status": "ok", "data": result_dicts}
 
                 elif action == "update_background":
+                    def chunkize(arr, sz):
+                        return [arr[i:min(i+sz,len(arr))] for i in range(0,len(arr),sz)]
+
                     save_id = command.get("save_id")
-                    responses = command.get("responses", [])
-                    speakers = command.get("speakers", [])
-                    listeners = command.get("listeners", [])
+                    responses = chunkize(command.get("responses", []),200)
+                    speakers = [[]]
+                    listeners = [[]]
                     date_string = command.get("date", "Not applicable")
                     
-                    success = manager.update_background(
-                        save_id,
-                        responses,
-                        speakers,
-                        listeners,
-                        date_string,
-                        "info"
-                    )
+                    for i in range(len(responses)):
+                        success = manager.update_background(
+                            save_id,
+                            responses[i],
+                            speakers[0],
+                            listeners[0],
+                            date_string,
+                            "info"
+                        )
 
-                    if "Error" in success:
-                        try:
-                            manager.get_or_create_collection(save_id)
-                            success = manager.update_background(
-                                save_id,
-                                responses,
-                                speakers,
-                                listeners,
-                                date_string,
-                                "info"
-                            )
-                        except Exception as e:
-                            pass
-                    
-                    if not "Error" in success:
-                        response = {"status": "ok", "message": "Background updated"}
-                    else:
-                        response = {"status": "error", "message": success}
+                        if not "Error" in success:
+                            response = {"status": "ok", "message": "Background updated"}
+                        else:
+                            response = {"status": "error", "message": success}
+                            break
                 
                 elif action == "close_save":
                     save_id = command.get("save_id")

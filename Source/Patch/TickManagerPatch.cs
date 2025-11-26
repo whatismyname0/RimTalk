@@ -51,10 +51,14 @@ internal static class TickManagerPatch
             CustomDialogueService.Tick();
         }
 
-        if (IsNow(TalkInterval))
+        bool isUserRequest;
+        Pawn selectedPawn;
+        
+        (isUserRequest, selectedPawn) = PawnSelector.SelectNextAvailablePawn();
+
+        if (IsNow(TalkInterval)||isUserRequest)
         {
             // Select a pawn based on the current iteration strategy
-            Pawn selectedPawn = PawnSelector.SelectNextAvailablePawn();
 
             if (selectedPawn != null)
             {

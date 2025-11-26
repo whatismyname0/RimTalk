@@ -241,6 +241,12 @@ public static class PawnService
         foreach (var target in hostileTargets.Where(target => GenHostility.IsActiveThreatTo(target, pawn.Faction)))
         {
             if (target.Thing is not Pawn threatPawn) continue;
+            if (threatPawn.Downed) continue;
+            if (pawn.IsPrisoner)
+            {
+                // Prevent prisoners from recognizing host faction or other prisoner from hostile faction as a threat
+                if (threatPawn.Faction == pawn.HostFaction || threatPawn.IsPrisoner) continue;
+            }
             Lord lord = threatPawn.GetLord();
 
             // === 1. EXCLUDE TACTICALLY RETREATING PAWNS ===
@@ -364,6 +370,16 @@ public static class PawnService
         }
 
         return result.TrimEnd();
+    }
+
+    public static bool IsPlayer(this Pawn pawn)
+    {
+        return pawn == Cache.GetPlayer();
+    }
+
+    public static bool HasVocalLink(this Pawn pawn)
+    {
+        return pawn.health.hediffSet.HasHediff(Constant.VocalLinkDef);
     }
 
     private static string DescribeResistance(float value)

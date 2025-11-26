@@ -3,7 +3,7 @@ ChromaDB manager for RimTalk conversation storage and retrieval.
 Handles per-save database management, storing conversations with metadata,
 and querying relevant historical context for prompt enrichment.
 """
-import fuzzywuzzy
+from thefuzz import process, fuzz
 import chromadb
 import hashlib
 import json
@@ -247,13 +247,7 @@ class ChromaDBManager:
                             doc2=doc+(":"+meta.get("definition","([WARNING] Info entry does not include a definition.)") if (meta.get("talk_type", "")=="info" and meta.get("definition") != "N/A") else "")
                             id2 = id
                             id2=id2.replace("_short","")
-                            if meta.get("talk_type") == "info":
-                                lenS=len(query_texts[i])
-                                substrings=[doc2[i:i+lenS]for i in range(len(doc2)-lenS+1)]
-                                best, score = fuzzywuzzy.process.extractOne(query_texts[i], substrings, scorer=fuzzywuzzy.fuzz.ratio)
-                                if score<70:
-                                    continue
-                                
+
                             # Deduplicate based on unique ID
                             if id2 not in all_results_map:
                                 # Normalize distance (L2 norm) to relevance score (e.g., 1.0 - distance/2.0)
@@ -388,9 +382,11 @@ class ChromaDBManager:
                 doc_id2 = doc_id + "_short"
                 
                 entry2 = entry.split(':',1)
+                if len(entry2) == 1:
+                    continue
 
                 metadata2 = metadata.copy()
-                metadata2["definition"] = entry2[-1]
+                metadata2["definition"] = entry2[1]
                 
                 documents.append(entry2[0])
                 ids.append(doc_id2)

@@ -12,6 +12,7 @@ Directory.Build.props
 *.sh
 /Source/ChromaManager/.venv
 /Source/ChromaManager/__pycache__
+/Source/ChromaManager/chromadb
 
 ## Interaction bubble library
 Libs/Bubbles.dll

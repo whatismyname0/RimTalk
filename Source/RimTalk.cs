@@ -30,7 +30,7 @@ public class RimTalk : GameComponent
         if (Find.World != null)
         {
             string saveId = Find.World.info.name ?? "default";
-            ChromaService.InitializeForSave(saveId);
+           // ChromaService.InitializeForSave(saveId);
         }
     }
 
@@ -43,7 +43,7 @@ public class RimTalk : GameComponent
         if (Find.World != null)
         {
             string saveId = Find.World.info.name ?? "default";
-            ChromaService.InitializeForSave(saveId);
+            //ChromaService.InitializeForSave(saveId);
         }
     }
 
@@ -60,7 +60,7 @@ public class RimTalk : GameComponent
         AIClientFactory.Clear();
         AIService.Clear();
         TalkHistory.Clear();
-        ChromaService.UpdateBackground(Constant.Context);
+        //ChromaService.UpdateBackground(Constant.Context);
         PatchThoughtHandlerGetDistinctMoodThoughtGroups.Clear();
         Cache.GetAll().ToList().ForEach(pawnState => pawnState.IgnoreAllTalkResponses());
 

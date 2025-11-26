@@ -106,8 +106,7 @@ public class PawnState(Pawn pawn)
                && */!Pawn.Dead
                /*&& Pawn.CurJobDef != JobDefOf.LayDown*/
                /*&& Pawn.CurJobDef != JobDefOf.LayDownAwake
-               && Pawn.CurJobDef != JobDefOf.LayDownResting*/
-               && (TalkInitiationWeight > 0 || Pawn.RaceProps.ToolUser);
+               && Pawn.CurJobDef != JobDefOf.LayDownResting*/;
     }
 
     public bool CanGenerateTalk()

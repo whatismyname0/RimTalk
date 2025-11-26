@@ -14,7 +14,7 @@ public static class GameLoadPatch
     [HarmonyLib.HarmonyPostfix]
     public static void Postfix()
     {
-        if (Find.World == null) return;
+        /*if (Find.World == null)*/ return;
 
         // Initialize ChromaDB for this save using world name as identifier
         string saveId = Find.World.info.name ?? "default";
@@ -31,6 +31,6 @@ public static class SceneExitPatch
     [HarmonyLib.HarmonyPostfix]
     public static void Postfix()
     {
-        ChromaService.CloseSave();
+        //ChromaService.CloseSave();
     }
 }

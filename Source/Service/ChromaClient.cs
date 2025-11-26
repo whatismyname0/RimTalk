@@ -360,7 +360,7 @@ public class ChromaClient
 
                 // Read response with timeout
                 var responseTask = _stdout.ReadLineAsync();
-                if (!responseTask.Wait(TimeSpan.FromSeconds(45)))
+                if (command["action"].ToString()!="update_background" &&!responseTask.Wait(TimeSpan.FromSeconds(45)))
                 {
                     Logger.Error("[ChromaClient] Command timeout - no response from Python process");
                     return null;

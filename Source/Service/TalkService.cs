@@ -95,67 +95,67 @@ public static class TalkService
             Cache.Get(initiator).IsGeneratingTalk = true;
             CommonUtil.InGameData gameData = CommonUtil.GetInGameData();
 
-            Logger.Debug($"[TalkService] ==================== ChromaDB Query Start ====================");
-            Logger.Debug($"[TalkService] Initiator: {initiator.LabelShort}");
-            Logger.Debug($"[TalkService] Involved pawns count: {allInvolvedPawns.Count}");
-            Logger.Debug($"[TalkService] Original prompt length: {talkRequest.Prompt.Length} chars");
+            // Logger.Debug($"[TalkService] ==================== ChromaDB Query Start ====================");
+            // Logger.Debug($"[TalkService] Initiator: {initiator.LabelShort}");
+            // Logger.Debug($"[TalkService] Involved pawns count: {allInvolvedPawns.Count}");
+            // Logger.Debug($"[TalkService] Original prompt length: {talkRequest.Prompt.Length} chars");
 
             // Generate an optimized search query and result count from the prompt for ChromaDB
-            Logger.Debug($"[TalkService] Step 1/4: Generating optimized search query and result count");
-            AIService.ChromaSearchParams searchParams = await AIService.GenerateChromaSearchQueryAsync(talkRequest.Prompt);
-            Logger.Debug($"[TalkService] Generated search query: {searchParams.content}");
-            Logger.Debug($"[TalkService] Desired result count: {searchParams.num}");
+            // Logger.Debug($"[TalkService] Step 1/4: Generating optimized search query and result count");
+            // AIService.ChromaSearchParams searchParams = await AIService.GenerateChromaSearchQueryAsync(talkRequest.Prompt);
+            // Logger.Debug($"[TalkService] Generated search query: {searchParams.content}");
+            // Logger.Debug($"[TalkService] Desired result count: {searchParams.num}");
 
             // Query relevant historical context before generating new conversation
-            Logger.Debug($"[TalkService] Step 2/4: Querying ChromaDB for relevant context (max {searchParams.num} results)");
-            List<ContextEntry> contextEntries = [];
-            var seenTexts = new HashSet<string>();
-            List<ContextEntry> newEntries = await ChromaService.QueryRelevantContextAsync(
-                searchParams.content,
-                allInvolvedPawns,
-                maxResults: 10
-            );
-            foreach (ContextEntry entry in newEntries)
-            {
-                if (seenTexts.Add(entry.Text)) // 如果成功添加（不重复）
-                {
-                    contextEntries.Add(entry);
-                }
-            }
+            // Logger.Debug($"[TalkService] Step 2/4: Querying ChromaDB for relevant context (max {searchParams.num} results)");
+            // List<ContextEntry> contextEntries = [];
+            // var seenTexts = new HashSet<string>();
+            // List<ContextEntry> newEntries = await ChromaService.QueryRelevantContextAsync(
+            //     searchParams.content,
+            //     allInvolvedPawns,
+            //     maxResults: 10
+            // );
+            // foreach (ContextEntry entry in newEntries)
+            // {
+            //     if (seenTexts.Add(entry.Text)) // 如果成功添加（不重复）
+            //     {
+            //         contextEntries.Add(entry);
+            //     }
+            // }
 
-            Logger.Debug($"[TalkService] Query returned {contextEntries.Count} context entries (requested {searchParams.num})");
-            if (contextEntries.Count > 0)
-            {
-                Logger.Debug($"[TalkService] Context entries:");
-                for (int i = 0; i < contextEntries.Count; i++)
-                {
-                    Logger.Debug($"[TalkService]   [{i + 1}] Speaker: {contextEntries[i].Speaker}, " +
-                        $"Relevance: {contextEntries[i].Relevance:F4}, Date: {contextEntries[i].Date}, " +
-                        $"Type: {contextEntries[i].TalkType}");
-                    Logger.Debug($"[TalkService]   {contextEntries[i].Text}");
-                }
-            }
-            else
-            {
-                Logger.Debug($"[TalkService] No historical context found in ChromaDB");
-            }
+            // Logger.Debug($"[TalkService] Query returned {contextEntries.Count} context entries (requested {searchParams.num})");
+            // if (contextEntries.Count > 0)
+            // {
+            //     Logger.Debug($"[TalkService] Context entries:");
+            //     for (int i = 0; i < contextEntries.Count; i++)
+            //     {
+            //         Logger.Debug($"[TalkService]   [{i + 1}] Speaker: {contextEntries[i].Speaker}, " +
+            //             $"Relevance: {contextEntries[i].Relevance:F4}, Date: {contextEntries[i].Date}, " +
+            //             $"Type: {contextEntries[i].TalkType}");
+            //         Logger.Debug($"[TalkService]   {contextEntries[i].Text}");
+            //     }
+            // }
+            // else
+            // {
+            //     Logger.Debug($"[TalkService] No historical context found in ChromaDB");
+            // }
 
             // Enrich prompt with historical context if available
-            Logger.Debug($"[TalkService] Step 3/4: Enriching prompt with historical context");
-            if (contextEntries.Any())
-            {
-                var contextStr = ChromaService.FormatContextForPrompt(contextEntries);
-                Logger.Debug($"[TalkService] Prepending context to prompt");
-                talkRequest.Prompt = contextStr + talkRequest.Prompt;
-                Logger.Debug($"[TalkService] Enriched prompt: {talkRequest.Prompt}");
-            }
-            else
-            {
-                Logger.Debug($"[TalkService] No context to enrich, using original prompt");
-            }
+            // Logger.Debug($"[TalkService] Step 3/4: Enriching prompt with historical context");
+            // if (contextEntries.Any())
+            // {
+            //     var contextStr = ChromaService.FormatContextForPrompt(contextEntries);
+            //     Logger.Debug($"[TalkService] Prepending context to prompt");
+            //     talkRequest.Prompt = contextStr + talkRequest.Prompt;
+            //     Logger.Debug($"[TalkService] Enriched prompt: {talkRequest.Prompt}");
+            // }
+            // else
+            // {
+            //     Logger.Debug($"[TalkService] No context to enrich, using original prompt");
+            // }
 
-            Logger.Debug($"[TalkService] Step 4/4: Streaming chat generation");
-            Logger.Debug($"[TalkService] ==================== ChromaDB Query End ====================");
+            // Logger.Debug($"[TalkService] Step 4/4: Streaming chat generation");
+            // Logger.Debug($"[TalkService] ==================== ChromaDB Query End ====================");
 
             // Create a dictionary for quick pawn lookup by name during streaming.
             // Use a defensive construction because multiple pawns can share the same LabelShort
@@ -202,17 +202,17 @@ public static class TalkService
             );
 
             // Once the stream is complete, save the full conversation to history and ChromaDB.
-            Logger.Debug($"[TalkService] Streaming complete. Received {receivedResponses.Count} responses");
+            // Logger.Debug($"[TalkService] Streaming complete. Received {receivedResponses.Count} responses");
             AddResponsesToHistory(allInvolvedPawns, receivedResponses, talkRequest.Prompt);
             
             // Asynchronously store in ChromaDB
-            Logger.Debug($"[TalkService] Storing conversation to ChromaDB asynchronously");
-            ChromaService.StoreConversationAsync(
-                receivedResponses,
-                initiator,
-                allInvolvedPawns,
-                gameData.DateString
-            );
+            // Logger.Debug($"[TalkService] Storing conversation to ChromaDB asynchronously");
+            // ChromaService.StoreConversationAsync(
+            //     receivedResponses,
+            //     initiator,
+            //     allInvolvedPawns,
+            //     gameData.DateString
+            // );
         }
         catch (Exception ex)
         {
@@ -274,7 +274,7 @@ public static class TalkService
             if (pawn.IsInDanger())
             {
                 replyInterval = 1;
-                pawnState.IgnoreAllTalkResponses([TalkType.Urgent, TalkType.User]);
+                // pawnState.IgnoreAllTalkResponses([TalkType.Urgent, TalkType.User]);
             }
 
             // Enforce a delay for replies to make conversations feel more natural.

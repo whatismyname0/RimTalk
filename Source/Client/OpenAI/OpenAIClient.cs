@@ -70,6 +70,7 @@ public class OpenAIClient : IAIClient
             Model = _model,
             Messages = allMessages,
             Stream = true,
+            Temperature = 0.8,
             StreamOptions = new StreamOptions { IncludeUsage = true }
         };
 

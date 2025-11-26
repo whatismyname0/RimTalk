@@ -66,11 +66,12 @@ public class PawnSelector
         return GetNearbyPawnsInternal(pawn1, pawn2, DetectionType.Hearing, onlyTalkable: false);
     }
 
-    public static Pawn SelectNextAvailablePawn()
+    public static (bool,Pawn) SelectNextAvailablePawn()
     {
         Pawn pawnWithOldestUserRequest = null;
         int oldestTick = int.MaxValue;
         var talkReadyPawns = new List<Pawn>();
+        bool isUserRequest = false;
 
         // Find the pawn with the highest priority task:
         // 1. The oldest user-initiated talk request (absolute priority).
@@ -87,6 +88,7 @@ public class PawnSelector
 
             if (minTick < oldestTick)
             {
+                isUserRequest = true;
                 oldestTick = minTick;
                 pawnWithOldestUserRequest = pawn;
             }
@@ -98,7 +100,8 @@ public class PawnSelector
         }
 
         // Return the highest priority pawn found, or null if none are available.
-        return pawnWithOldestUserRequest ?? 
-               (talkReadyPawns.Any() ? Cache.GetRandomWeightedPawn(talkReadyPawns) : null);
+        return (isUserRequest,
+                pawnWithOldestUserRequest ?? 
+               (talkReadyPawns.Any() ? Cache.GetRandomWeightedPawn(talkReadyPawns) : null));
     }
 }

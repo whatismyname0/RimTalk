@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using RimTalk.Service;
+using RimWorld;
 using Verse;
 using Random = System.Random;
 
@@ -18,10 +19,20 @@ public static class Cache
     private static readonly Random Random = new();
 
     public static IEnumerable<Pawn> Keys => PawnCache.Keys;
+    public static Pawn GetPlayer() => _playerPawn;
+    private static Pawn _playerPawn;
 
     public static PawnState Get(Pawn pawn)
     {
-        return pawn == null ? null : PawnCache.TryGetValue(pawn, out var state) ? state : null;
+        if (pawn == null) return null;
+
+        if (PawnCache.TryGetValue(pawn, out var state)) return state;
+
+        if (!pawn.IsTalkEligible()) return null;
+        
+        PawnCache[pawn] = new PawnState(pawn);
+        NameCache[pawn.LabelShort] = pawn;
+        return PawnCache[pawn];
     }
 
     /// <summary>
@@ -36,18 +47,14 @@ public static class Cache
     public static void Refresh()
     {
         // Identify and remove ineligible pawns from all caches.
-        foreach (Pawn pawn in PawnCache.Keys.ToList())
+        foreach (var pawn in PawnCache.Keys.ToList().Where(pawn => !pawn.IsTalkEligible()))
         {
-            if (!pawn.IsTalkEligible())
+            if (PawnCache.TryRemove(pawn, out var removedState))
             {
-                if (PawnCache.TryRemove(pawn, out var removedState))
-                {
-                    NameCache.TryRemove(removedState.Pawn.LabelShort, out _);
-                }
+                NameCache.TryRemove(removedState.Pawn.LabelShort, out _);
             }
         }
-
-        // Add new eligible pawns to all caches.
+        
         foreach (Pawn pawn in Find.CurrentMap.mapPawns.AllPawnsSpawned)
         {
             if (pawn.IsTalkEligible() && !PawnCache.ContainsKey(pawn))
@@ -56,6 +63,9 @@ public static class Cache
                 NameCache[pawn.LabelShort] = pawn;
             }
         }
+
+        if (_playerPawn == null)
+            InitializePlayerPawn();
     }
 
     public static IEnumerable<PawnState> GetAll()
@@ -67,6 +77,7 @@ public static class Cache
     {
         PawnCache.Clear();
         NameCache.Clear();
+        _playerPawn = null;
     }
 
     private static double GetScaleFactor(double groupWeight, double baselineWeight)
@@ -168,5 +179,13 @@ public static class Cache
         }
 
         return pawnList.LastOrDefault(p => (Get(p)?.TalkInitiationWeight ?? 0.0) > 0);
+    }
+
+    private static void InitializePlayerPawn()
+    {
+        _playerPawn = PawnGenerator.GeneratePawn(PawnKindDefOf.Colonist);
+        _playerPawn.Name = new NameSingle("RimTalk.CustomDialogue.Player".Translate());
+        PawnCache[_playerPawn] = new PawnState(_playerPawn);
+        NameCache[_playerPawn.LabelShort] = _playerPawn;
     }
 }
