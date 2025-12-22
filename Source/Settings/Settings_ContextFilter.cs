@@ -49,7 +49,8 @@ namespace RimTalk
                 IncludeBeauty = false,
                 IncludeCleanliness = false,
                 IncludeSurroundings = false,
-                IncludeWealth = false
+                IncludeWealth = false,
+                IncludeRecentLogs = false
             }},
             { ContextPreset.Standard, new ContextSettings {
                 EnableContextOptimization = false,
@@ -77,7 +78,8 @@ namespace RimTalk
                 IncludeBeauty = false,
                 IncludeCleanliness = false,
                 IncludeSurroundings = false,
-                IncludeWealth = false
+                IncludeWealth = false,
+                IncludeRecentLogs = true
             }},
             { ContextPreset.Comprehensive, new ContextSettings {
                 EnableContextOptimization = false,
@@ -105,7 +107,8 @@ namespace RimTalk
                 IncludeBeauty = true,
                 IncludeCleanliness = true,
                 IncludeSurroundings = true,
-                IncludeWealth = true
+                IncludeWealth = true,
+                IncludeRecentLogs = true
             }}
         };
 
@@ -149,11 +152,11 @@ namespace RimTalk
             listing.Gap(6f);
 
             DrawDropdown(listing, "RimTalk.Settings.MaxPawnContextCount", context.MaxPawnContextCount, 
-                val => { context.MaxPawnContextCount = val; _currentPreset = ContextPreset.Custom; }, 2, 3);
+                val => { context.MaxPawnContextCount = val; _currentPreset = ContextPreset.Custom; }, 2, 8);
             listing.Gap(6f);
 
             DrawDropdown(listing, "RimTalk.Settings.ConversationHistoryCount", context.ConversationHistoryCount, 
-                val => { context.ConversationHistoryCount = val; _currentPreset = ContextPreset.Custom; }, 0, 3);
+                val => { context.ConversationHistoryCount = val; _currentPreset = ContextPreset.Custom; }, 0, 5);
             listing.Gap();
 
             DrawColumns(listing, context);
@@ -254,6 +257,7 @@ namespace RimTalk
             leftListing.CheckboxLabeled("RimTalk.Settings.IncludeMood".Translate(), ref context.IncludeMood);
             leftListing.CheckboxLabeled("RimTalk.Settings.IncludeThoughts".Translate(), ref context.IncludeThoughts);
             leftListing.CheckboxLabeled("RimTalk.Settings.IncludeRelations".Translate(), ref context.IncludeRelations);
+            leftListing.CheckboxLabeled("RimTalk.Settings.IncludeRecentLogs".Translate(), ref context.IncludeRecentLogs);
             leftListing.CheckboxLabeled("RimTalk.Settings.IncludeEquipment".Translate(), ref context.IncludeEquipment);
             leftListing.CheckboxLabeled("RimTalk.Settings.IncludePrisonerSlaveStatus".Translate(), ref context.IncludePrisonerSlaveStatus);
 

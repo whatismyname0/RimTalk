@@ -212,6 +212,7 @@
     <RimTalk.Settings.IncludeCleanliness>Cleanliness</RimTalk.Settings.IncludeCleanliness>
     <RimTalk.Settings.IncludeSurroundings>Nearby Items</RimTalk.Settings.IncludeSurroundings>
     <RimTalk.Settings.IncludeWealth>Colony Wealth</RimTalk.Settings.IncludeWealth>
+    <RimTalk.Settings.IncludeRecentLogs>Recent Logs (last 2 in-game hours)</RimTalk.Settings.IncludeRecentLogs>
     
     <!-- DebugWindow.cs -->
     <RimTalk.DebugWindow.Generating>[Generating...]</RimTalk.DebugWindow.Generating>

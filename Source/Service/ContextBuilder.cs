@@ -9,6 +9,7 @@ using RimTalk.Util;
 using RimWorld;
 using UnityEngine;
 using Verse;
+using RimTalk.Patches;
 
 namespace RimTalk.Service;
 
@@ -351,5 +352,74 @@ public static class ContextBuilder
                 sb.Append($"\nSurroundings: {string.Join(", ", grouped)}");
             }
         }
+    }
+
+    public static string GetRecentLogsContext(Pawn pawn, PromptService.InfoLevel infoLevel)
+    {
+        var contextSettings = Settings.Get().Context;
+        if (!contextSettings.IncludeRecentLogs) return null;
+        if (infoLevel == PromptService.InfoLevel.Short) return null;
+
+        var entries = Find.PlayLog?.AllEntries;
+        if (entries == null || entries.Count == 0) return null;
+
+        // Last 2 in-game hours (2500 ticks per hour)
+        int ticksWindow = 2500 * 2;
+        int minTicks = GenTicks.TicksGame - ticksWindow;
+
+        var ticksField = typeof(LogEntry).GetField("ticksAbs", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        var recentItems = new List<string>();
+
+        for (int i = entries.Count - 1; i >= 0; i--)
+        {
+            var entry = entries[i];
+            if (entry == null) continue;
+
+            // Exclude RimTalk-produced logs:
+            // - entries that are the special PlayLogEntry_RimTalkInteraction type
+            // - entries that were converted and stored in RimTalkWorldComponent
+            if (entry is PlayLogEntry_RimTalkInteraction) continue;
+            if (entry is PlayLogEntry_Interaction interaction && InteractionTextPatch.IsRimTalkInteraction(interaction)) continue;
+
+            int entryTicks = ticksField != null ? (int)ticksField.GetValue(entry) : -1;
+            if (entryTicks < minTicks) continue;
+
+            // Check if this entry concerns the pawn
+            var concerns = entry.GetConcerns();
+            if (!concerns.OfType<Pawn>().Contains(pawn)) continue;
+
+            // Title: interaction label if available
+            string title = entry.GetType().Name;
+            var intDefField = entry.GetType().GetField("intDef", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (intDefField != null)
+            {
+                var intDef = intDefField.GetValue(entry) as InteractionDef;
+                if (intDef != null) title = intDef.label;
+            }
+
+            string content;
+            try
+            {
+                content = entry.ToGameStringFromPOV(pawn).StripTags();
+            }
+            catch
+            {
+                content = entry.ToString();
+            }
+
+            recentItems.Add($"{title}: {content}");
+        }
+
+        if (!recentItems.Any()) return null;
+
+        var sb = new StringBuilder();
+        sb.Append("Recent Logs:");
+        foreach (var item in recentItems)
+        {
+            sb.AppendLine().Append(item);
+        }
+
+        return sb.ToString();
     }
 }

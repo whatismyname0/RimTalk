@@ -212,6 +212,7 @@
     <RimTalk.Settings.IncludeCleanliness>清洁度</RimTalk.Settings.IncludeCleanliness>
     <RimTalk.Settings.IncludeSurroundings>附近的物品</RimTalk.Settings.IncludeSurroundings>
     <RimTalk.Settings.IncludeWealth>殖民地财富</RimTalk.Settings.IncludeWealth>
+    <RimTalk.Settings.IncludeRecentLogs>最近日志（过去2小时）</RimTalk.Settings.IncludeRecentLogs>
 
     <!-- DebugWindow.cs -->
     <RimTalk.DebugWindow.Generating>[正在生成...]</RimTalk.DebugWindow.Generating>

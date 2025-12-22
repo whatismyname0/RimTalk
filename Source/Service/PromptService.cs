@@ -27,7 +27,7 @@ public static class PromptService
             var pawn = pawns[i];
             if (pawn.IsPlayer()) continue;
             InfoLevel infoLevel = Settings.Get().Context.EnableContextOptimization 
-                                  || i != 0 ? InfoLevel.Short : InfoLevel.Normal;
+                                  || i != 0 ? InfoLevel.Normal : InfoLevel.Full;
             var pawnContext = CreatePawnContext(pawn, infoLevel);
 
             Cache.Get(pawn).Context = pawnContext;
@@ -105,6 +105,9 @@ public static class PromptService
 
         AppendIfNotEmpty(sb, ContextBuilder.GetRelationsContext(pawn, infoLevel));
         
+        // Inject recent logs if enabled and info level is at least Normal
+        AppendIfNotEmpty(sb, ContextBuilder.GetRecentLogsContext(pawn, infoLevel));
+
         if (infoLevel != InfoLevel.Short)
             AppendIfNotEmpty(sb, ContextBuilder.GetEquipmentContext(pawn, infoLevel));
 
