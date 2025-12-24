@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -214,14 +215,29 @@ public static class ContextBuilder
             return null;
 
         var allThoughts = ContextHelper.GetThoughts(pawn);
-        
         // For Short level, only include latest 3 thoughts
-        var thoughts = infoLevel == PromptService.InfoLevel.Short
-            ? allThoughts.Keys.Take(3).Select(t => ContextHelper.Sanitize(t.LabelCap))
-            : allThoughts.Keys.Select(t => ContextHelper.Sanitize(t.LabelCap));
+        var thoughtEntries = infoLevel == PromptService.InfoLevel.Short
+            ? allThoughts.Take(3)
+            : allThoughts;
 
-        if (thoughts.Any())
-            return $"Memory: {string.Join(", ", thoughts)}";
+        // Include cachedMoodOffsetOfGroup (if available) along with summed mood offsets
+        var thoughtStrings = thoughtEntries.Select(kvp =>
+        {
+            var t = kvp.Key;
+            var summedOffset = kvp.Value;
+            var summedInt = (int)Math.Round(summedOffset);
+            var cachedField = t.GetType().GetField("cachedMoodOffsetOfGroup", BindingFlags.Public | BindingFlags.Instance);
+            if (cachedField != null)
+            {
+                var cachedVal = (float)cachedField.GetValue(t);
+                var cachedInt = (int)Math.Round(cachedVal);
+                return $"{ContextHelper.Sanitize(t.LabelCap)}({summedInt:+0;-0;0}/{cachedInt:+0;-0;0})";
+            }
+            return $"{ContextHelper.Sanitize(t.LabelCap)}({summedInt:+0;-0;0})";
+        });
+
+        if (thoughtStrings.Any())
+            return $"Memory: {string.Join(", ", thoughtStrings)}";
         return null;
     }
 
