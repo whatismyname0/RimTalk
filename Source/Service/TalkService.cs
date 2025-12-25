@@ -98,9 +98,8 @@ public static class TalkService
         {
             Cache.Get(initiator).IsGeneratingTalk = true;
 
-            // Create a dictionary for quick pawn lookup during streaming.
-            // Group by LabelShort and pick the first pawn for each displayed name to avoid duplicate-key exceptions
-            // when multiple pawns share the same short label.
+            // Create a dictionary for quick pawn lookup by name during streaming.
+            // Note: LabelShort is not guaranteed to be unique (e.g. animals, duplicated names, some custom races).
             var playerDict = allInvolvedPawns
                 .GroupBy(p => p.LabelShort)
                 .ToDictionary(g => g.Key, g => g.First());

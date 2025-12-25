@@ -152,11 +152,11 @@ namespace RimTalk
             listing.Gap(6f);
 
             DrawDropdown(listing, "RimTalk.Settings.MaxPawnContextCount", context.MaxPawnContextCount, 
-                val => { context.MaxPawnContextCount = val; _currentPreset = ContextPreset.Custom; }, 2, 8);
+                val => { context.MaxPawnContextCount = val; _currentPreset = ContextPreset.Custom; }, 2, 7);
             listing.Gap(6f);
 
             DrawDropdown(listing, "RimTalk.Settings.ConversationHistoryCount", context.ConversationHistoryCount, 
-                val => { context.ConversationHistoryCount = val; _currentPreset = ContextPreset.Custom; }, 0, 5);
+                val => { context.ConversationHistoryCount = val; _currentPreset = ContextPreset.Custom; }, 0, 7);
             listing.Gap();
 
             DrawColumns(listing, context);
