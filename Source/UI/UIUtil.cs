@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using RimTalk.Data;
 using RimTalk.Util;
@@ -73,24 +72,16 @@ public static class UIUtil
 
             foreach (var log in apiLogs)
             {
-                string combinedContexts = "";
-                if (log.Contexts != null && log.Contexts.Any())
-                {
-                    var escapedContexts = log.Contexts.Select(c => c.Replace("\"", "\"\""));
-                    combinedContexts = string.Join(" | ", escapedContexts);
-                }
-
                 sb.AppendLine(
-                    $"\"{log.Timestamp}\",\"{log.Name}\",\"{log.Response}\",\"{log.InteractionType}\",{log.TokenCount},{log.ElapsedMs},\"{log.Prompt}\",\"{combinedContexts}\"");
+                    $"\"{log.Timestamp}\",\"{log.Name}\",\"{log.Response}\",\"{log.InteractionType}\",{log.TokenCount},{log.ElapsedMs},\"{log.TalkRequest.Prompt}\",\"{log.TalkRequest.Context}\"");
             }
 
             string fileName = $"RimTalk_Export_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-            string path = Path.Combine(GenFilePaths.ConfigFolderPath, fileName);
+            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), fileName);
 
             File.WriteAllText(path, sb.ToString());
 
             Messages.Message($"Exported to: {path}", MessageTypeDefOf.TaskCompletion, false);
-            Application.OpenURL(GenFilePaths.ConfigFolderPath);
         }
         catch (Exception ex)
         {

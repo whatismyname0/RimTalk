@@ -1,45 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using RimTalk.Client;
+using RimTalk.Source.Data;
+using Verse;
 
 namespace RimTalk.Data;
-
-public class ApiLog(string name, string prompt, string response, Payload payload, DateTime timestamp, List<string> contexts = null)
-{
-    public Guid Id { get; } = Guid.NewGuid();
-    public int ConversationId { get; set; }
-    public string Name { get; set; } = name;
-    public List<string> Contexts { get; set; } = contexts ?? [];
-    public string Prompt { get; set; } = prompt;
-    public string Response { get; set; } = response;
-    public string InteractionType;
-    public bool IsFirstDialogue;
-    public string RequestPayload { get; set; } = payload?.Request;
-    public string ResponsePayload { get; set; } = payload?.Response;
-    public int TokenCount { get; set; } = payload?.TokenCount ?? 0;
-    public DateTime Timestamp { get; } = timestamp;
-    public int ElapsedMs;
-    public int SpokenTick { get; set; } = 0;
-    
-    public static List<string> ExtractContextBlocks(string context)
-    {
-        var blocks = new List<string>();
-        if (string.IsNullOrEmpty(context)) return blocks;
-    
-        string pattern = @"\[P\d+\]\s*(.*?)(?=\[P\d+\]|$)";
-        var matches = Regex.Matches(context, pattern, RegexOptions.Singleline);
-
-        foreach (Match match in matches)
-        {
-            var block = match.Groups[1].Value.Trim();
-            if (!string.IsNullOrEmpty(block))
-                blocks.Add(block);
-        }
-
-        return blocks;
-    }
-}
 
 public static class ApiHistory
 {
@@ -48,9 +13,9 @@ public static class ApiHistory
     
     public static ApiLog GetApiLog(Guid id) => History.TryGetValue(id, out var apiLog) ? apiLog : null;
 
-    public static ApiLog AddRequest(TalkRequest request, string context)
+    public static ApiLog AddRequest(TalkRequest request, Channel channel)
     {
-        var log = new ApiLog(request.Initiator.LabelShort, request.Prompt, null, null, DateTime.Now, ApiLog.ExtractContextBlocks(context))
+        var log = new ApiLog(request.Initiator.LabelShort, request, null, null, DateTime.Now, channel)
             {
                 IsFirstDialogue = true,
                 ConversationId = request.IsMonologue ? -1 : _conversationIdIndex++
@@ -87,7 +52,7 @@ public static class ApiHistory
         }
         
         // multi-turn messages
-        var newLog = new ApiLog(name, originalLog.Prompt, response, payload, DateTime.Now, originalLog.Contexts);
+        var newLog = new ApiLog(name, originalLog.TalkRequest, response, payload, DateTime.Now, originalLog.Channel);
         History[newLog.Id] = newLog;
         newLog.InteractionType = interactionType;
         newLog.ElapsedMs = elapsedMs;
@@ -95,9 +60,11 @@ public static class ApiHistory
         return newLog;
     }
     
-    public static ApiLog AddUserHistory(string name, string text)
+    public static ApiLog AddUserHistory(Pawn initiator, Pawn recipient, string text)
     {
-        var log = new ApiLog(name, null, text, null, DateTime.Now);
+        var prompt = $"{initiator.LabelShort} talked to {recipient.LabelShort}"; 
+        TalkRequest talkRequest = new(prompt, initiator, recipient, TalkType.User);
+        var log = new ApiLog(initiator.LabelShort, talkRequest, text, null, DateTime.Now, Channel.User);
         History[log.Id] = log;
         return log;
     }

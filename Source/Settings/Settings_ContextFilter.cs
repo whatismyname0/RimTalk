@@ -41,7 +41,8 @@ namespace RimTalk
                 IncludeEquipment = false,
                 IncludePrisonerSlaveStatus = false,
                 
-                IncludeTimeAndDate = false,
+                IncludeTime = false,
+                IncludeDate = false,
                 IncludeSeason = false,
                 IncludeWeather = true,
                 IncludeLocationAndTemperature = false,
@@ -70,7 +71,8 @@ namespace RimTalk
                 IncludeEquipment = true,
                 IncludePrisonerSlaveStatus = false,
                 
-                IncludeTimeAndDate = true,
+                IncludeTime = true,
+                IncludeDate = false,
                 IncludeSeason = true,
                 IncludeWeather = true,
                 IncludeLocationAndTemperature = true,
@@ -99,7 +101,8 @@ namespace RimTalk
                 IncludeEquipment = true,
                 IncludePrisonerSlaveStatus = true,
                 
-                IncludeTimeAndDate = true,
+                IncludeTime = true,
+                IncludeDate = true,
                 IncludeSeason = true,
                 IncludeWeather = true,
                 IncludeLocationAndTemperature = true,
@@ -274,7 +277,8 @@ namespace RimTalk
             GUI.color = Color.white;
             rightListing.Gap(6f);
 
-            rightListing.CheckboxLabeled("RimTalk.Settings.IncludeTimeAndDate".Translate(), ref context.IncludeTimeAndDate);
+            rightListing.CheckboxLabeled("RimTalk.Settings.IncludeTime".Translate(), ref context.IncludeTime);
+            rightListing.CheckboxLabeled("RimTalk.Settings.IncludeDate".Translate(), ref context.IncludeDate);
             rightListing.CheckboxLabeled("RimTalk.Settings.IncludeSeason".Translate(), ref context.IncludeSeason);
             rightListing.CheckboxLabeled("RimTalk.Settings.IncludeWeather".Translate(), ref context.IncludeWeather);
             rightListing.CheckboxLabeled("RimTalk.Settings.IncludeLocationAndTemperature".Translate(), ref context.IncludeLocationAndTemperature);

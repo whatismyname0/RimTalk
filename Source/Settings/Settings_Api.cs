@@ -271,6 +271,10 @@ public partial class Settings
                     config.Provider = AIProvider.Grok;
                     config.SelectedModel = Constant.ChooseModel;
                 }),
+                new(nameof(AIProvider.GLM), () => {
+                    config.Provider = AIProvider.GLM;
+                    config.SelectedModel = Constant.ChooseModel;
+                }),
                 new(nameof(AIProvider.OpenRouter), () => {
                     config.Provider = AIProvider.OpenRouter;
                     config.SelectedModel = Constant.ChooseModel;
@@ -282,7 +286,7 @@ public partial class Settings
                 }),
                 new(nameof(AIProvider.Custom), () => {
                     config.Provider = AIProvider.Custom;
-                    config.SelectedModel = "Custom";
+                    config.SelectedModel = Constant.ChooseModel;
                 })
             ];
             Find.WindowStack.Add(new FloatMenu(providerOptions));
@@ -395,6 +399,7 @@ public partial class Settings
             case AIProvider.OpenAI: return "https://api.openai.com/v1/models";
             case AIProvider.DeepSeek: return "https://api.deepseek.com/models";
             case AIProvider.Grok: return "https://api.x.ai/v1/models";
+            case AIProvider.GLM: return "https://api.z.ai/api/paas/v4/models";
             case AIProvider.OpenRouter: return "https://openrouter.ai/api/v1/models";
             case AIProvider.Player2:
             default: return null;

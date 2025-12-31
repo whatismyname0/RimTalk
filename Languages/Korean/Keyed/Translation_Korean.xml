@@ -119,7 +119,6 @@
     <RimTalk.Settings.ButtonDisplayTooltip>디버그 인터페이스 접근 방식을 제어합니다. '탭'은 주 탭을 추가하고, '토글'은 하단 바에 아이콘을 표시하며, '없음'은 숨깁니다.</RimTalk.Settings.ButtonDisplayTooltip>
 
     <RimTalk.Settings.AIInstructionPrompt>AI 지침 프롬프트 (모델: {0})</RimTalk.Settings.AIInstructionPrompt>
-    <RimTalk.Settings.ExternalEditorTip>팁: 외부 편집기를 사용해 여러 줄을 편집하거나 \+n 을 입력하여 새 줄을 추가하세요.</RimTalk.Settings.ExternalEditorTip>
     <RimTalk.Settings.AutoIncludedTip>팁: 정착민 세부 정보(특성, 관계, 종족, 나이 등)는 자동으로 포함됩니다. 모든 캐릭터와 정착지에 적용될 수 있는 일반적인 지침을 작성하세요.</RimTalk.Settings.AutoIncludedTip>
     <RimTalk.Settings.RateLimitWarning>경고: 프롬프트가 길수록 더 많은 토큰을 소비하고 사용량 제한에 더 빨리 도달합니다.</RimTalk.Settings.RateLimitWarning>
     <RimTalk.Settings.TokenInfo>현재: ~{0} 토큰 | 권장 한도: {1} 토큰</RimTalk.Settings.TokenInfo>
@@ -203,7 +202,8 @@
     <RimTalk.Settings.IncludeRelations>관계</RimTalk.Settings.IncludeRelations>
     <RimTalk.Settings.IncludeEquipment>장비</RimTalk.Settings.IncludeEquipment>
     <RimTalk.Settings.Environment>환경</RimTalk.Settings.Environment>
-    <RimTalk.Settings.IncludeTimeAndDate>시간 및 날짜</RimTalk.Settings.IncludeTimeAndDate>
+    <RimTalk.Settings.IncludeTime>시간</RimTalk.Settings.IncludeTime>
+    <RimTalk.Settings.IncludeDate>날짜</RimTalk.Settings.IncludeDate>
     <RimTalk.Settings.IncludeSeason>계절</RimTalk.Settings.IncludeSeason>
     <RimTalk.Settings.IncludeWeather>날씨</RimTalk.Settings.IncludeWeather>
     <RimTalk.Settings.IncludeLocationAndTemperature>위치 및 온도</RimTalk.Settings.IncludeLocationAndTemperature>
@@ -219,19 +219,23 @@
     <RimTalk.DebugWindow.State>상태</RimTalk.DebugWindow.State>
     <RimTalk.DebugWindow.Limit>제한</RimTalk.DebugWindow.Limit>
     <RimTalk.DebugWindow.StateAll>모든 상태</RimTalk.DebugWindow.StateAll>
-    <RimTalk.DebugWindow.StatePending>대기 중</RimTalk.DebugWindow.StatePending>
+    <RimTalk.DebugWindow.StatePending>대기중</RimTalk.DebugWindow.StatePending>
     <RimTalk.DebugWindow.StateIgnored>무시됨</RimTalk.DebugWindow.StateIgnored>
     <RimTalk.DebugWindow.StateSpoken>발화됨</RimTalk.DebugWindow.StateSpoken>
+    <RimTalk.DebugWindow.StateFailed>실패</RimTalk.DebugWindow.StateFailed>
     <RimTalk.DebugWindow.Last>최근</RimTalk.DebugWindow.Last>
     <RimTalk.DebugWindow.AutoScroll>자동 스크롤</RimTalk.DebugWindow.AutoScroll>
     <RimTalk.DebugWindow.TooltipSelectForDetails>행을 선택하면 자세한 정보가 표시됩니다</RimTalk.DebugWindow.TooltipSelectForDetails>
     <RimTalk.DebugWindow.Details>세부 정보</RimTalk.DebugWindow.Details>
     <RimTalk.DebugWindow.SelectRowHint>왼쪽에서 요청을 선택하여 프롬프트/응답/컨텍스트를 확인하세요.</RimTalk.DebugWindow.SelectRowHint>
+    <RimTalk.DebugWindow.Resend>재전송</RimTalk.DebugWindow.Resend>
+    <RimTalk.DebugWindow.ResendTooltip>컨텍스트와 프롬프트를 수정한 뒤 재전송하여 대화를 테스트합니다.</RimTalk.DebugWindow.ResendTooltip>
+    <RimTalk.DebugWindow.ResendSuccess>요청이 성공적으로 재전송되었습니다.</RimTalk.DebugWindow.ResendSuccess>
+    <RimTalk.DebugWindow.ResendError>AI가 현재 사용 중입니다. 상태가 Idle일 때 다시 시도하세요.</RimTalk.DebugWindow.ResendError>
     <RimTalk.DebugWindow.CopyAll>모두 복사</RimTalk.DebugWindow.CopyAll>
-    <RimTalk.DebugWindow.CopyPrompt>프롬프트 복사</RimTalk.DebugWindow.CopyPrompt>
-    <RimTalk.DebugWindow.CopyResponse>응답 복사</RimTalk.DebugWindow.CopyResponse>
-    <RimTalk.DebugWindow.CopyContexts>컨텍스트 복사</RimTalk.DebugWindow.CopyContexts>
+    <RimTalk.DebugWindow.Copy>복사</RimTalk.DebugWindow.Copy>
     <RimTalk.DebugWindow.Copied>복사 완료</RimTalk.DebugWindow.Copied>
+    <RimTalk.DebugWindow.Undo>되돌리기</RimTalk.DebugWindow.Undo>
     <RimTalk.DebugWindow.Prompt>프롬프트</RimTalk.DebugWindow.Prompt>
     <RimTalk.DebugWindow.Response>응답</RimTalk.DebugWindow.Response>
     <RimTalk.DebugWindow.Contexts>컨텍스트</RimTalk.DebugWindow.Contexts>
@@ -242,7 +246,7 @@
     <RimTalk.DebugWindow.GroupByPawn>정착민별로 그룹화</RimTalk.DebugWindow.GroupByPawn>
     <RimTalk.DebugWindow.ModSettings>모드 설정</RimTalk.DebugWindow.ModSettings>
     <RimTalk.DebugWindow.Export>내보내기</RimTalk.DebugWindow.Export>
-    <RimTalk.DebugWindow.Reset>로그 초기화</RimTalk.DebugWindow.Reset>
+    <RimTalk.DebugWindow.ResetLogs>로그 초기화</RimTalk.DebugWindow.ResetLogs>
     <RimTalk.DebugWindow.EnableRimTalk>RimTalk 활성화</RimTalk.DebugWindow.EnableRimTalk>
     <RimTalk.DebugWindow.AIStatus>AI 상태:</RimTalk.DebugWindow.AIStatus>
     <RimTalk.DebugWindow.TotalCalls>총 호출 수:</RimTalk.DebugWindow.TotalCalls>
@@ -281,6 +285,12 @@
     <RimTalk.Gizmo.ChatWithTargetDesc>{0}와(과) 대화를 시작합니다.</RimTalk.Gizmo.ChatWithTargetDesc>
     <RimTalk.FloatMenu.WhatToSayToSelf>{0}에게 무엇을 말하고 싶으세요?</RimTalk.FloatMenu.WhatToSayToSelf>
     <RimTalk.FloatMenu.WhatToSayToOther>{0}가 {1}에게 무엇을 말하기를 원하세요?</RimTalk.FloatMenu.WhatToSayToOther>
-    <RimTalk.FloatMenu.Send>보내기</RimTalk.FloatMenu.Send>
+    <RimTalk.FloatMenu.Send>전송</RimTalk.FloatMenu.Send>
     <RimTalk.FloatMenu.Cancel>취소</RimTalk.FloatMenu.Cancel>
+
+    <!-- Player2 Deprecation -->
+    <RimTalk.Player2Deprecation.Title>Player2 제공자 지원 종료</RimTalk.Player2Deprecation.Title>
+    <RimTalk.Player2Deprecation.Message>"Player2" AI 제공자는 더 이상 지원되지 않으며 2026년 1월 31일에 RimTalk에서 제거될 예정입니다.\n\nAI 대화 기능을 원활하게 유지하려면 해당 날짜 이전에 다른 제공자로 전환해 주세요.\n\n현재 모드 설정에 Player2가 제공자로 등록되어 있어 이 메시지가 표시됩니다.</RimTalk.Player2Deprecation.Message>
+    <RimTalk.Player2Deprecation.DontShowAgain>다시 보지 않기</RimTalk.Player2Deprecation.DontShowAgain>
+    <RimTalk.Player2Deprecation.WarningShort>지원 종료: 2026년 1월 31일</RimTalk.Player2Deprecation.WarningShort>
 </LanguageData>

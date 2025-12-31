@@ -20,8 +20,7 @@ public static class PromptService
     public static string BuildContext(List<Pawn> pawns)
     {
         var context = new StringBuilder();
-        context.AppendLine(Constant.Instruction).AppendLine();
-
+        
         for (int i = 0; i < pawns.Count; i++)
         {
             var pawn = pawns[i];
@@ -34,7 +33,7 @@ public static class PromptService
             context.AppendLine($"[P{i + 1}]").AppendLine(pawnContext);
         }
 
-        return context.ToString();
+        return context.ToString().TrimEnd();
     }
 
     /// <summary>Creates the basic pawn backstory section.</summary>
@@ -43,7 +42,7 @@ public static class PromptService
         var sb = new StringBuilder();
         var name = pawn.LabelShort;
         var title = pawn.story?.title == null ? "" : $"({pawn.story.title})";
-        var genderAndAge = Regex.Replace(pawn.MainDesc(false), @"\(\d+\)", "");
+        var genderAndAge = Regex.Replace(pawn.MainDesc(false), @"\(\d+\)", "").Trim();
         sb.AppendLine($"{name} {title} ({genderAndAge})");
 
         var role = pawn.GetRole(true);
@@ -127,11 +126,10 @@ public static class PromptService
 
         // Time and weather
         sb.Append($"\n{status}");
-        if (contextSettings.IncludeTimeAndDate)
-        {
+        if (contextSettings.IncludeTime)
             sb.Append($"\nTime: {gameData.Hour12HString}");
+        if (contextSettings.IncludeDate)
             sb.Append($"\nToday: {gameData.DateString}");
-        }
         if (contextSettings.IncludeSeason)
             sb.Append($"\nSeason: {gameData.SeasonString}");
         if (contextSettings.IncludeWeather)

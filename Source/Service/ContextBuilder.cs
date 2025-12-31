@@ -23,7 +23,7 @@ public static class ContextBuilder
         var contextSettings = Settings.Get().Context;
         if (!contextSettings.IncludeRace || !ModsConfig.BiotechActive || pawn.genes?.Xenotype == null)
             return null;
-        return $"Race: {pawn.genes.Xenotype.LabelCap}";
+        return $"Race: {pawn.genes.XenotypeLabel}";
     }
 
     public static string GetNotableGenesContext(Pawn pawn, PromptService.InfoLevel infoLevel)
@@ -362,11 +362,13 @@ public static class ContextBuilder
 
         if (contextSettings.IncludeSurroundings)
         {
-            var items = ContextHelper.CollectNearbyItems(mainPawn, 10);
-            if (items.Any())
             {
-                var grouped = items.GroupBy(i => i).Select(g => g.Count() > 1 ? $"{g.Key} x {g.Count()}" : g.Key);
-                sb.Append($"\nSurroundings: {string.Join(", ", grouped)}");
+                var surroundingsText = ContextHelper.CollectNearbyContextText(mainPawn, 10);
+                if (!string.IsNullOrEmpty(surroundingsText))
+                {
+                    sb.Append("\nSurroundings:\n");
+                    sb.Append(surroundingsText);
+                }
             }
         }
     }

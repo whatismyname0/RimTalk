@@ -2,13 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using RimTalk.Data;
 using RimTalk.Service;
+using RimTalk.Source.Data;
 using RimWorld;
 using UnityEngine;
 using Verse;
 using Verse.Sound;
 using Cache = RimTalk.Data.Cache;
+using State = RimTalk.Data.ApiLog.State;
 
 namespace RimTalk.UI;
 
@@ -60,8 +63,14 @@ public class DebugWindow : Window
     private int _maxRows;
     private string _pawnFilter;
     private string _textSearch;
-    private int _stateFilter; // 0=All, 1=Pending, 2=Ignored, 3=Spoken
-    private ApiLog _selectedRequest;
+    private State _stateFilter;
+    private ApiLog _selectedLog;
+
+    // Temporary Editable State
+    private Guid _selectedRequestIdForTemp = Guid.Empty;
+    private string _tempPrompt;
+    private string _tempResponse;
+    private string _tempContexts;
 
     private bool _groupingEnabled;
     private string _sortColumn;
@@ -71,6 +80,9 @@ public class DebugWindow : Window
     // Focus Control Names
     private const string ControlNamePawnFilter = "PawnFilterField";
     private const string ControlNameTextSearch = "TextSearchField";
+    private const string ControlNameDetailResponse = "DetailResponseField";
+    private const string ControlNameDetailPrompt = "DetailPromptField";
+    private const string ControlNameDetailContexts = "DetailContextsField";
 
     // Styles
     private GUIStyle _contextStyle;
@@ -83,6 +95,8 @@ public class DebugWindow : Window
         resizeable = true;
         absorbInputAroundWindow = false;
         closeOnClickedOutside = false;
+        closeOnAccept = false;
+        closeOnCancel = true;
         preventCameraMotion = false;
 
         var settings = Settings.Get();
@@ -94,7 +108,7 @@ public class DebugWindow : Window
         _maxRows = 500;
         _pawnFilter = string.Empty;
         _textSearch = string.Empty;
-        _stateFilter = 0;
+        _stateFilter = State.None;
     }
 
     public override Vector2 InitialSize => new(1100f, 600f);
@@ -201,8 +215,11 @@ public class DebugWindow : Window
         }
 
         // If selected request is no longer in the filtered list, deselect
-        if (_selectedRequest != null && _requests.All(r => r.Id != _selectedRequest.Id))
-            _selectedRequest = null;
+        if (_selectedLog != null && _requests.All(r => r.Id != _selectedLog.Id))
+        {
+            _selectedLog = null;
+            _selectedRequestIdForTemp = Guid.Empty;
+        }
     }
 
     private void DrawLeftPane(Rect rect)
@@ -233,7 +250,6 @@ public class DebugWindow : Window
         float limitWidth = 90f;
 
         // Calculate how much horizontal space is used by fixed elements + gaps
-        // (Margin) + Icon + (Gap) + (Gap) + (Gap) + Status + (Gap) + Limit
         float totalFixedSpace = 5f + iconWidth + gap + gap + gap + statusWidth + gap + limitWidth;
 
         // Calculate remaining flexible space
@@ -268,23 +284,21 @@ public class DebugWindow : Window
 
         // 4. Status Dropdown
         var stateBtnRect = new Rect(currentX, y, statusWidth, height);
-        if (Widgets.ButtonText(stateBtnRect, GetStateLabel(_stateFilter)))
+        if (Widgets.ButtonText(stateBtnRect, _stateFilter.GetLabel()))
         {
-            var options = new List<FloatMenuOption>
-            {
-                new(GetStateLabel(0), () => _stateFilter = 0),
-                new(GetStateLabel(1), () => _stateFilter = 1),
-                new(GetStateLabel(2), () => _stateFilter = 2),
-                new(GetStateLabel(3), () => _stateFilter = 3)
-            };
+            var options = Enum.GetValues(typeof(State))
+                .Cast<State>()
+                .Select(filter => new FloatMenuOption(filter.GetLabel(), () => _stateFilter = filter))
+                .ToList();
             Find.WindowStack.Add(new FloatMenu(options));
         }
+
         currentX += statusWidth + gap;
 
         // 5. Limit Dropdown
         var limitBtnRect = new Rect(currentX, y, limitWidth, height);
         string lastPrefix = "RimTalk.DebugWindow.Last".Translate();
-        
+
         if (Widgets.ButtonText(limitBtnRect, $"{lastPrefix} {_maxRows}"))
         {
             var options = new List<FloatMenuOption>
@@ -321,10 +335,7 @@ public class DebugWindow : Window
         if (_stickToBottom && _tableScrollPosition.y < maxScroll - 1f)
             _stickToBottom = false;
 
-        // Define button size constant
         const float btnSize = 30f;
-
-        // Calculate Overlay Blocking Rect (Inner Content Space)
         Rect? overlayContentRect = null;
         if (!_stickToBottom)
         {
@@ -359,7 +370,6 @@ public class DebugWindow : Window
                 btnSize);
 
             bool isMouseOver = Mouse.IsOver(overlayRect);
-
             Color bgColor = isMouseOver
                 ? new Color(0.3f, 0.3f, 0.3f, 1f)
                 : new Color(0, 0, 0, 0.6f);
@@ -394,7 +404,7 @@ public class DebugWindow : Window
         var rowRect = new Rect(xOffset, rowY, totalWidth, RowHeight);
         if (rowIndex % 2 == 0) Widgets.DrawBoxSolid(rowRect, new Color(0.15f, 0.15f, 0.15f, 0.4f));
 
-        bool isSelected = _selectedRequest != null && _selectedRequest.Id == request.Id;
+        bool isSelected = _selectedLog != null && _selectedLog.Id == request.Id;
         if (isSelected) Widgets.DrawBoxSolid(rowRect, new Color(0.2f, 0.25f, 0.35f, 0.45f));
 
         string resp = request.Response ?? _generating;
@@ -439,39 +449,20 @@ public class DebugWindow : Window
             : (request.TokenCount == 0 ? (request.IsFirstDialogue ? "?" : "-") : request.TokenCount.ToString());
         Widgets.Label(new Rect(currentX, rowRect.y, TokensColumnWidth, RowHeight), tokenCountText);
         currentX += TokensColumnWidth + ColumnPadding;
-
-        string statusText;
-        Color statusColor;
-        if (request.Response == null || request.SpokenTick == 0)
-        {
-            statusText = "RimTalk.DebugWindow.StatePending".Translate();
-            statusColor = Color.yellow;
-        }
-        else if (request.SpokenTick == -1)
-        {
-            statusText = "RimTalk.DebugWindow.StateIgnored".Translate();
-            statusColor = Color.red;
-        }
-        else
-        {
-            statusText = "RimTalk.DebugWindow.StateSpoken".Translate();
-            statusColor = Color.green;
-        }
-
-        GUI.color = statusColor;
-        Widgets.Label(new Rect(currentX, rowRect.y, StateColumnWidth, RowHeight), statusText);
+        
+        State stateFilter = request.GetState();
+        GUI.color = stateFilter.GetColor();
+        Widgets.Label(new Rect(currentX, rowRect.y, StateColumnWidth, RowHeight), stateFilter.GetLabel());
         GUI.color = Color.white;
 
-        // Only show tooltip if input isn't blocked by the overlay
         if (!inputBlocked)
         {
             TooltipHandler.TipRegion(rowRect, "RimTalk.DebugWindow.TooltipSelectForDetails".Translate());
         }
 
-        // Only process click if input isn't blocked by the overlay
         if (!inputBlocked && Widgets.ButtonInvisible(rowRect))
         {
-            _selectedRequest = request;
+            _selectedLog = request;
             // Interrupt auto-scroll on selection
             _stickToBottom = false;
         }
@@ -490,7 +481,7 @@ public class DebugWindow : Window
         Widgets.Label(new Rect(0f, y, inner.width, 24f), "RimTalk.DebugWindow.Details".Translate());
         y += 26f;
 
-        if (_selectedRequest == null)
+        if (_selectedLog == null)
         {
             Text.Font = GameFont.Tiny;
             GUI.color = Color.gray;
@@ -500,14 +491,27 @@ public class DebugWindow : Window
             return;
         }
 
+        // Initialize temp strings if a new row is selected
+        if (_selectedLog.Id != _selectedRequestIdForTemp)
+        {
+            _selectedRequestIdForTemp = _selectedLog.Id;
+            _tempPrompt = _selectedLog.TalkRequest.Prompt ?? string.Empty;
+            _tempResponse = _selectedLog.Response ?? string.Empty;
+            _tempContexts = _selectedLog.TalkRequest.Context;
+        }
+        else if (string.IsNullOrEmpty(_tempResponse) && !string.IsNullOrEmpty(_selectedLog.Response))
+        {
+            _tempResponse = _selectedLog.Response;
+        }
+
         var header = new StringBuilder();
-        header.Append(_selectedRequest.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"));
+        header.Append(_selectedLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"));
         header.Append("  |  ");
-        header.Append((_selectedRequest.Name ?? "-").Trim());
-        if (_selectedRequest.InteractionType != null)
+        header.Append((_selectedLog.Name ?? "-").Trim());
+        if (_selectedLog.InteractionType != null)
         {
             header.Append("  |  ");
-            header.Append(_selectedRequest.InteractionType);
+            header.Append(_selectedLog.InteractionType);
         }
 
         Text.Font = GameFont.Tiny;
@@ -519,81 +523,147 @@ public class DebugWindow : Window
         float buttonsRowH = 24f;
         float btnW = 88f;
         float btnX = 0f;
+
+        // Copy All Button
         if (Widgets.ButtonText(new Rect(btnX, y, btnW, buttonsRowH), "RimTalk.DebugWindow.CopyAll".Translate()))
         {
-            GUIUtility.systemCopyBuffer = BuildCopyAll(_selectedRequest);
+            GUIUtility.systemCopyBuffer = _selectedLog.ToString();
             Messages.Message("RimTalk.DebugWindow.Copied".Translate(), MessageTypeDefOf.TaskCompletion, false);
         }
 
+        // Resend Button
+        GUI.enabled = _selectedLog.Channel != Channel.User;
         btnX += btnW + 6f;
-        if (Widgets.ButtonText(new Rect(btnX, y, btnW, buttonsRowH), "RimTalk.DebugWindow.CopyPrompt".Translate()))
+        var prevColor = GUI.color;
+        GUI.color = new Color(0.6f, 0.9f, 0.6f);
+        Rect resendRect = new Rect(btnX, y, btnW, buttonsRowH);
+        if (Widgets.ButtonText(resendRect, "RimTalk.DebugWindow.Resend".Translate()))
         {
-            GUIUtility.systemCopyBuffer = _selectedRequest.Prompt ?? string.Empty;
-            Messages.Message("RimTalk.DebugWindow.Copied".Translate(), MessageTypeDefOf.TaskCompletion, false);
+            SoundDefOf.Click.PlayOneShotOnCamera();
+            Resend();
         }
 
-        btnX += btnW + 6f;
-        if (Widgets.ButtonText(new Rect(btnX, y, btnW, buttonsRowH), "RimTalk.DebugWindow.CopyResponse".Translate()))
-        {
-            GUIUtility.systemCopyBuffer = _selectedRequest.Response ?? string.Empty;
-            Messages.Message("RimTalk.DebugWindow.Copied".Translate(), MessageTypeDefOf.TaskCompletion, false);
-        }
-
-        btnX += btnW + 6f;
-        if (Widgets.ButtonText(new Rect(btnX, y, btnW, buttonsRowH), "RimTalk.DebugWindow.CopyContexts".Translate()))
-        {
-            GUIUtility.systemCopyBuffer = BuildCopyContexts(_selectedRequest);
-            Messages.Message("RimTalk.DebugWindow.Copied".Translate(), MessageTypeDefOf.TaskCompletion, false);
-        }
+        TooltipHandler.TipRegion(resendRect, "RimTalk.DebugWindow.ResendTooltip".Translate());
+        GUI.color = prevColor;
+        GUI.enabled = true;
 
         y += buttonsRowH + 8f;
 
         // Scrollable selectable areas
         var scrollOuter = new Rect(0f, y, inner.width, inner.height - y);
-        float viewH = 0f;
         float blockSpacing = 10f;
+        float headerH = 18f;
 
-        string prompt = _selectedRequest.Prompt ?? string.Empty;
-        string response = _selectedRequest.Response ?? string.Empty;
-        string contexts = BuildCopyContexts(_selectedRequest);
-
+        // Calculate heights dynamically based on current (possibly edited) content
+        float viewWidth = scrollOuter.width - 16f;
+        float textAreaWidth = viewWidth - 8f;
         float promptH = Mathf.Max(70f,
-            _monoTinyStyle.CalcHeight(new GUIContent(prompt), scrollOuter.width - 16f) + 10f);
-        float respH = Mathf.Max(90f,
-            _monoTinyStyle.CalcHeight(new GUIContent(response), scrollOuter.width - 16f) + 10f);
-        float ctxH = Mathf.Max(70f, _monoTinyStyle.CalcHeight(new GUIContent(contexts), scrollOuter.width - 16f) + 10f);
+            _monoTinyStyle.CalcHeight(new GUIContent(_tempPrompt), textAreaWidth) + 10f);
+        float respH = Mathf.Max(40f,
+            _monoTinyStyle.CalcHeight(new GUIContent(_tempResponse), textAreaWidth) + 10f);
+        float ctxH = Mathf.Max(70f,
+            _monoTinyStyle.CalcHeight(new GUIContent(_tempContexts), textAreaWidth) + 10f);
 
-        viewH = 18f + promptH + blockSpacing + 18f + respH + blockSpacing + 18f + ctxH + 10f;
+        var viewH = headerH + respH + blockSpacing +
+                    headerH + promptH + blockSpacing +
+                    headerH + ctxH + 10f;
+
         var view = new Rect(0f, 0f, scrollOuter.width - 16f, viewH);
 
         Widgets.BeginScrollView(scrollOuter, ref _detailsScrollPosition, view);
         float yy = 0f;
 
-        DrawSelectableBlock(ref yy, view.width, "RimTalk.DebugWindow.Response".Translate(), response, respH);
+        // Response Block
+        DrawSelectableBlock(ref yy, view.width, "RimTalk.DebugWindow.Response".Translate(),
+            ref _tempResponse, respH, ControlNameDetailResponse,
+            onCopy: () =>
+            {
+                GUIUtility.systemCopyBuffer = _tempResponse;
+                Messages.Message("RimTalk.DebugWindow.Copied".Translate(), MessageTypeDefOf.TaskCompletion, false);
+            },
+            readOnly: true);
         yy += blockSpacing;
-        DrawSelectableBlock(ref yy, view.width, "RimTalk.DebugWindow.Prompt".Translate(), prompt, promptH);
+
+        // Prompt Block
+        DrawSelectableBlock(ref yy, view.width, "RimTalk.DebugWindow.Prompt".Translate(),
+            ref _tempPrompt, promptH, ControlNameDetailPrompt,
+            onCopy: () =>
+            {
+                GUIUtility.systemCopyBuffer = _tempPrompt;
+                Messages.Message("RimTalk.DebugWindow.Copied".Translate(), MessageTypeDefOf.TaskCompletion, false);
+            },
+            onReset: () => _tempPrompt = _selectedLog.TalkRequest.Prompt ?? string.Empty);
         yy += blockSpacing;
-        DrawSelectableBlock(ref yy, view.width, "RimTalk.DebugWindow.Contexts".Translate(), contexts, ctxH);
+
+        // Contexts Block
+        DrawSelectableBlock(ref yy, view.width, "RimTalk.DebugWindow.Contexts".Translate(),
+            ref _tempContexts, ctxH, ControlNameDetailContexts,
+            onCopy: () =>
+            {
+                GUIUtility.systemCopyBuffer = _tempContexts;
+                Messages.Message("RimTalk.DebugWindow.Copied".Translate(), MessageTypeDefOf.TaskCompletion, false);
+            },
+            onReset: () => _tempContexts = _selectedLog.TalkRequest.Context);
+        ;
 
         Widgets.EndScrollView();
 
         GUI.EndGroup();
     }
 
-    private void DrawSelectableBlock(ref float y, float width, string title, string content, float contentHeight)
+    private void DrawSelectableBlock(ref float y, float width, string title, ref string content, float contentHeight,
+        string controlName, Action onCopy, Action onReset = null, bool readOnly = false)
     {
+        // Header Row: Label + Icons
+        float headerHeight = 18f;
+
         Text.Font = GameFont.Tiny;
         GUI.color = Color.gray;
-        Widgets.Label(new Rect(0f, y, width, 18f), title);
-        GUI.color = Color.white;
-        y += 18f;
 
+        Vector2 labelSize = Text.CalcSize(title);
+        Rect labelRect = new Rect(0f, y, labelSize.x, headerHeight);
+        Widgets.Label(labelRect, title);
+
+        // Draw Copy Icon next to label
+        Rect copyRect = new Rect(labelRect.xMax + 8f, y, 16f, 16f);
+        if (Widgets.ButtonImage(copyRect, TexButton.Copy))
+        {
+            onCopy?.Invoke();
+        }
+
+        TooltipHandler.TipRegion(copyRect, "RimTalk.DebugWindow.Copy".Translate());
+
+        // Draw Reset Icon next to Copy Icon
+        if (onReset != null)
+        {
+            Rect resetRect = new Rect(copyRect.xMax + 4f, y, 16f, 16f);
+            if (Widgets.ButtonImage(resetRect, TexButton.HotReloadDefs))
+            {
+                onReset.Invoke();
+                SoundDefOf.Click.PlayOneShotOnCamera();
+            }
+
+            TooltipHandler.TipRegion(resetRect, "RimTalk.DebugWindow.Undo".Translate());
+        }
+
+        GUI.color = Color.white;
+        y += headerHeight;
+
+        // Content Box (Editable)
         var box = new Rect(0f, y, width, contentHeight);
-        Widgets.DrawBoxSolid(box, new Color(0.05f, 0.05f, 0.05f, 0.55f));
+
+        bool isFocused = GUI.GetNameOfFocusedControl() == controlName;
+        Color colorUnfocused = new Color(0.05f, 0.05f, 0.05f, 0.55f);
+        Color colorFocused = new Color(0.15f, 0.15f, 0.15f, 0.4f);
+        Widgets.DrawBoxSolid(box, isFocused && !readOnly ? colorFocused : colorUnfocused);
 
         var textRect = box.ContractedBy(4f);
-        GUI.SetNextControlName("RimTalk_DebugDetails_TextArea");
-        GUI.TextArea(textRect, content, _monoTinyStyle);
+        GUI.SetNextControlName(controlName);
+
+        if (readOnly)
+            GUI.TextArea(textRect, content, _monoTinyStyle);
+        else
+            content = GUI.TextArea(textRect, content, _monoTinyStyle);
 
         y += contentHeight;
     }
@@ -741,7 +811,7 @@ public class DebugWindow : Window
     private void DrawSortableHeader(Rect rect, string column)
     {
         string translatedColumn = column.Translate();
-        string arrow = (_sortColumn == column) ? (_sortAscending ? " ▲" : " ▼") : "";
+        string arrow = _sortColumn == column ? (_sortAscending ? " ▲" : " ▼") : "";
         if (Widgets.ButtonInvisible(rect))
         {
             if (_sortColumn == column) _sortAscending = !_sortAscending;
@@ -774,7 +844,7 @@ public class DebugWindow : Window
         long maxVal = Math.Max(1, series.Where(s => s.data != null && s.data.Any()).SelectMany(s => s.data).Max());
 
         Text.Font = GameFont.Tiny;
-        GUI.color = Color.grey;
+        GUI.color = Color.gray;
         Widgets.Label(new Rect(rect.x + 5, rect.y, 40, 20), maxVal.ToString());
         Widgets.Label(new Rect(rect.x + 5, rect.y + rect.height - 15, 60, 20),
             "RimTalk.DebugWindow.SixtySecondsAgo".Translate());
@@ -838,7 +908,7 @@ public class DebugWindow : Window
         var aiStatus = _aiStatus.Translate();
         if (aiStatus == "RimTalk.DebugWindow.StatusProcessing".Translate()) statusColor = Color.yellow;
         else if (aiStatus == "RimTalk.DebugWindow.StatusIdle".Translate()) statusColor = Color.green;
-        else statusColor = Color.grey;
+        else statusColor = Color.gray;
 
         GUI.color = Color.gray;
         Widgets.Label(new Rect(contentRect.x, currentY, labelWidth, rowHeight),
@@ -890,13 +960,11 @@ public class DebugWindow : Window
 
         var prevColor = GUI.color;
         GUI.color = new Color(1f, 0.4f, 0.4f);
-        if (listing.ButtonText("RimTalk.DebugWindow.Reset".Translate()))
+        if (listing.ButtonText("RimTalk.DebugWindow.ResetLogs".Translate()))
             Reset();
         GUI.color = prevColor;
         listing.End();
     }
-
-    // Helpers
 
     private IEnumerable<ApiLog> ApplyFilters(IEnumerable<ApiLog> source)
     {
@@ -912,18 +980,14 @@ public class DebugWindow : Window
         {
             var needle = _textSearch.Trim();
             q = q.Where(r =>
-                (r.Prompt ?? string.Empty).IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                (r.TalkRequest.Prompt ?? string.Empty).IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0 ||
                 (r.Response ?? string.Empty).IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                ((r.InteractionType ?? string.Empty).IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0));
+                (r.InteractionType ?? string.Empty).IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
-        switch (_stateFilter)
-        {
-            case 1: q = q.Where(r => r.Response == null || r.SpokenTick == 0); break; 
-            case 2: q = q.Where(r => r.SpokenTick == -1); break;
-            case 3: q = q.Where(r => r.Response != null && r.SpokenTick > 0); break;
-        }
-
+        if (_stateFilter != State.None)
+            q = q.Where(r => r.GetState() == _stateFilter);
+        
         return q;
     }
 
@@ -932,7 +996,11 @@ public class DebugWindow : Window
         if (Event.current.type == EventType.MouseDown && inRect.Contains(Event.current.mousePosition))
         {
             string focused = GUI.GetNameOfFocusedControl();
-            if (focused == ControlNamePawnFilter || focused == ControlNameTextSearch)
+            if (focused == ControlNamePawnFilter ||
+                focused == ControlNameTextSearch ||
+                focused == ControlNameDetailResponse ||
+                focused == ControlNameDetailPrompt ||
+                focused == ControlNameDetailContexts)
             {
                 GUI.FocusControl(null);
             }
@@ -957,18 +1025,7 @@ public class DebugWindow : Window
 
         return result;
     }
-
-    private string GetStateLabel(int state)
-    {
-        return state switch
-        {
-            1 => "RimTalk.DebugWindow.StatePending".Translate(),
-            2 => "RimTalk.DebugWindow.StateIgnored".Translate(),
-            3 => "RimTalk.DebugWindow.StateSpoken".Translate(),
-            _ => "RimTalk.DebugWindow.StateAll".Translate()
-        };
-    }
-
+    
     private IEnumerable<PawnState> GetSortedPawnStates()
     {
         switch (_sortColumn)
@@ -980,9 +1037,9 @@ public class DebugWindow : Window
             case "Requests":
                 return _sortAscending
                     ? _pawnStates.OrderBy(p =>
-                        _talkLogsByPawn.ContainsKey(p.Pawn.LabelShort) ? _talkLogsByPawn[p.Pawn.LabelShort].Count : 0)
+                        _talkLogsByPawn.TryGetValue(p.Pawn.LabelShort, out var value) ? value.Count : 0)
                     : _pawnStates.OrderByDescending(p =>
-                        _talkLogsByPawn.ContainsKey(p.Pawn.LabelShort) ? _talkLogsByPawn[p.Pawn.LabelShort].Count : 0);
+                        _talkLogsByPawn.TryGetValue(p.Pawn.LabelShort, out var value1) ? value1.Count : 0);
             case "Response":
                 return _sortAscending
                     ? _pawnStates.OrderBy(p => GetLastResponseForPawn(p.Pawn.LabelShort))
@@ -1053,45 +1110,24 @@ public class DebugWindow : Window
 
         return "";
     }
-
-    private string BuildCopyContexts(ApiLog r)
+    
+    private void Resend()
     {
-        if (r.Contexts == null || r.Contexts.Count == 0) return string.Empty;
-        var sb = new StringBuilder();
-        for (int i = 0; i < r.Contexts.Count; i++)
+        if (AIService.IsBusy())
         {
-            sb.AppendLine($"--- Context {i + 1} ---");
-            sb.AppendLine(r.Contexts[i]);
-            sb.AppendLine();
+            Messages.Message("RimTalk.DebugWindow.ResendError".Translate(), MessageTypeDefOf.RejectInput);
+            return;
         }
 
-        return sb.ToString().TrimEnd();
-    }
-
-    private string BuildCopyAll(ApiLog r)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine($"Timestamp: {r.Timestamp:yyyy-MM-dd HH:mm:ss}");
-        sb.AppendLine($"Pawn: {r.Name ?? "-"}");
-        sb.AppendLine($"InteractionType: {r.InteractionType ?? "-"}");
-        sb.AppendLine($"ElapsedMs: {r.ElapsedMs}");
-        sb.AppendLine($"TokenCount: {r.TokenCount}");
-        sb.AppendLine($"SpokenTick: {r.SpokenTick}");
-        sb.AppendLine();
-        sb.AppendLine("=== Prompt ===");
-        sb.AppendLine(r.Prompt ?? string.Empty);
-        sb.AppendLine();
-        sb.AppendLine("=== Response ===");
-        sb.AppendLine(r.Response ?? string.Empty);
-        var ctx = BuildCopyContexts(r);
-        if (!string.IsNullOrWhiteSpace(ctx))
-        {
-            sb.AppendLine();
-            sb.AppendLine("=== Contexts ===");
-            sb.AppendLine(ctx);
-        }
-
-        return sb.ToString().TrimEnd();
+        TalkRequest debugRequest = _selectedLog.TalkRequest.Clone();
+        debugRequest.Prompt = _tempPrompt;
+        debugRequest.Context = _tempContexts;
+        if (_selectedLog.Channel == Channel.Stream)
+            TalkService.GenerateTalkDebug(debugRequest);
+        else if (_selectedLog.Channel == Channel.Query)
+            Task.Run(() => AIService.Query<PersonalityData>(debugRequest));
+            
+        Messages.Message("RimTalk.DebugWindow.ResendSuccess".Translate(), MessageTypeDefOf.TaskCompletion);
     }
 
     private void Reset()
