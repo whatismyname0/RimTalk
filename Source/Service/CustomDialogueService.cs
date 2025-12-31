@@ -74,7 +74,7 @@ public static class CustomDialogueService
         else
         {
             ApiLog apiLog = ApiHistory.AddUserHistory(initiator.LabelShort, message);
-            TalkResponse talkResponse = new(TalkType.User, initiator.LabelShort, message)
+            TalkResponse talkResponse = new(TalkType.User, initiator.LabelShort, message, "")
             {
                 Id = apiLog.Id
             };

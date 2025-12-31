@@ -30,7 +30,7 @@ public class JsonStreamParser<T> where T : class
                 break;
             }
 
-            string jsonObj = text.Substring(objStart, objEnd - objStart + 1);
+            string jsonObj = JsonUtil.ProcessResponse(text.Substring(objStart, objEnd - objStart + 1));
 
             try
             {

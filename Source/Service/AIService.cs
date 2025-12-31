@@ -50,7 +50,7 @@ public static class AIService
                         if (lastApiLog == initApiLog)
                             elapsedMs -= lastApiLog.ElapsedMs;
                         
-                        var newApiLog = ApiHistory.AddResponse(initApiLog.Id, talkResponse.Text, talkResponse.Name, talkResponse.InteractionRaw, elapsedMs:elapsedMs);
+                        var newApiLog = ApiHistory.AddResponse(initApiLog.Id, talkResponse.GetText(), talkResponse.Name, talkResponse.InteractionRaw, elapsedMs:elapsedMs);
                         talkResponse.Id = newApiLog.Id;
                         
                         lastApiLog = newApiLog;
@@ -100,7 +100,7 @@ public static class AIService
         {
             foreach (var talkResponse in talkResponses)
             {
-                apiLog = ApiHistory.AddResponse(apiLog.Id, talkResponse.Text, talkResponse.Name, talkResponse.InteractionRaw, payload);
+                apiLog = ApiHistory.AddResponse(apiLog.Id, talkResponse.GetText(), talkResponse.Name, talkResponse.InteractionRaw, payload);
                 talkResponse.Id = apiLog.Id;
             }
         }

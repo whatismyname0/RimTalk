@@ -30,7 +30,7 @@ public static class Constant
 
     private const string JsonInstruction = """
                                            Output JSONL.
-                                           Required keys: "name", "text".
+                                           Required keys: "name", "text", "thinking".
                                            """;
     
     private const string SocialInstruction = """

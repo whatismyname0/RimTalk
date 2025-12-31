@@ -49,6 +49,8 @@ public static class PromptService
         var role = pawn.GetRole(true);
         if (role != null)
             sb.AppendLine($"Role: {role}");
+        
+        AppendIfNotEmpty(sb, ContextBuilder.GetRecentLogsContext(pawn, infoLevel));
 
         // Each section can be patched independently
         AppendIfNotEmpty(sb, ContextBuilder.GetRaceContext(pawn, infoLevel));
@@ -104,9 +106,6 @@ public static class PromptService
         }
 
         AppendIfNotEmpty(sb, ContextBuilder.GetRelationsContext(pawn, infoLevel));
-        
-        // Inject recent logs if enabled and info level is at least Normal
-        AppendIfNotEmpty(sb, ContextBuilder.GetRecentLogsContext(pawn, infoLevel));
 
         if (infoLevel != InfoLevel.Short)
             AppendIfNotEmpty(sb, ContextBuilder.GetEquipmentContext(pawn, infoLevel));

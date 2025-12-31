@@ -39,7 +39,7 @@ public static class ContextHelper
             ? pawn.genes.Xenotype.LabelCap
             : pawn.def.LabelCap;
 
-        return $"{pawn.LabelShort}(Age:{pawn.ageTracker.AgeBiologicalYears};{pawn.gender.GetLabel()};ID:{pawn.GetRole(true)};{race})";
+        return $"{pawn.LabelShort}(Age:{pawn.ageTracker.AgeBiologicalYears};{pawn.gender.GetLabel()}; Role:{pawn.GetRole(true)};{race})";
     }
 
     public static bool IsWall(Thing thing)

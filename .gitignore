@@ -14,3 +14,6 @@ Directory.Build.props
 ## Interaction bubble library
 Libs/Bubbles.dll
 !Libs/Bubbles.sh
+Textures/UI/ChatGizmo.dds.zstd
+Textures/UI/RimTalkIcon.dds.zstd
+Textures/UI/VoiceLinkCatalyst.dds.zstd

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Json;
 using System.Text;
@@ -36,7 +37,7 @@ public static class JsonUtil
             // Deserialize the JSON data
             return (T)serializer.ReadObject(stream);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             Logger.Error($"Json deserialization failed for {typeof(T).Name}\n{json}");
             throw;
@@ -98,6 +99,95 @@ public static class JsonUtil
         if (isEnumerable && sanitized.StartsWith("{"))
         {
             sanitized = $"[{sanitized}]";
+        }
+
+        return sanitized;
+    }
+
+    public static string ProcessResponse(string text)
+    {
+        string sanitized = text
+            .Replace("：",":")
+            .Replace("，",",")
+            .Replace("（","(")
+            .Replace("）",")")
+            .Replace(")(",")")
+            .Replace("“","\"")
+            .Replace("”","\"")
+            .Replace("＂","\"")
+            .Trim();
+
+        List<string> keys = ["name", "thinking", "text", "act", "target"];
+        foreach (var key in keys)
+        {
+            sanitized = Regex.Replace(
+                sanitized,
+                $"^[ \\t\"]*{key}[ \\t\"]*:",
+                $"\"{key}\":",
+                RegexOptions.Multiline);
+        }
+    
+        while (sanitized.StartsWith("{") && sanitized.EndsWith("}"))
+        {
+            string innerContent = sanitized.Substring(1, sanitized.Length - 2).Trim();
+            if (innerContent.StartsWith("{") && innerContent.EndsWith("}"))
+            {
+                sanitized = innerContent;
+                continue;
+            }
+            break;
+        }
+
+        foreach (var key in keys)
+        {
+            var keyPattern = "\"" + key + "\"";
+            int keyPos = sanitized.IndexOf(keyPattern, StringComparison.Ordinal);
+            if (keyPos == -1) continue;
+
+            int colonPos = sanitized.IndexOf(':', keyPos);
+            if (colonPos == -1) continue;
+
+            int valueStart = colonPos + 1;
+            
+            while (valueStart < sanitized.Length && char.IsWhiteSpace(sanitized[valueStart])) valueStart++;
+            if (valueStart >= sanitized.Length) continue;
+
+            int nextKeyPos = -1;
+            foreach (var k2 in keys)
+            {
+                var p = sanitized.IndexOf("\"" + k2 + "\"", valueStart, StringComparison.Ordinal);
+                if (p != -1)
+                    if (nextKeyPos == -1 || p < nextKeyPos)
+                        nextKeyPos = p;
+            }
+
+            int closingBracePos = sanitized.IndexOf('}', valueStart);
+            int boundary = -1;
+            if (nextKeyPos != -1) boundary = nextKeyPos;
+            else if (closingBracePos != -1) boundary = closingBracePos;
+            else continue;
+
+            int valueEnd = boundary-1;
+            while (char.IsWhiteSpace(sanitized[valueEnd]))
+                valueEnd--;
+            if (sanitized[valueEnd] == ',')
+                valueEnd--;
+            else
+                sanitized = sanitized.Insert(valueEnd+1,",");
+
+            if (valueEnd < valueStart) valueStart = valueEnd;
+            if (sanitized[valueStart] == '"')
+            {
+                sanitized = sanitized.Remove(valueStart, 1);
+                valueEnd--;
+            }
+            
+            string rawValue = sanitized.Substring(valueStart, valueEnd - valueStart + 1).Trim();
+            if (rawValue.EndsWith("\""))
+                rawValue = rawValue.Replace("\"", "");
+
+            string escaped = rawValue.Replace("\"", "'");
+            sanitized = sanitized.Substring(0, valueStart) + "\"" + escaped + "\"" + sanitized.Substring(valueEnd+1);
         }
 
         return sanitized;

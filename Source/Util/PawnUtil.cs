@@ -144,7 +144,7 @@ public static class PawnUtil
 
             // All nearby pawns list
             string nearbyList = GetNearbyPawnsList(nearbyPawns, relevantPawns, useOptimization, settings.Context.MaxPawnContextCount);
-            lines.Add("Nearby: " + nearbyList);
+            lines.Add("Nearby:\n{" + nearbyList + "\n}");
         }
         else
         {
@@ -177,7 +177,7 @@ public static class PawnUtil
 
     private static string GetPawnLabel(Pawn pawn, HashSet<Pawn> relevantPawns, bool useOptimization)
     {
-        if (useOptimization)
+        if (useOptimization || pawn== Cache.GetPlayer())
             return pawn.LabelShort;
         
         return relevantPawns.Contains(pawn) 
@@ -224,7 +224,7 @@ public static class PawnUtil
                 if (Cache.Get(p) != null)
                 {
                     string activity = GetPawnActivity(p, relevantPawns, useOptimization);
-                    return $"{label} {activity.StripTags()}";
+                    return $"\n {label}: Now {activity.StripTags()}";
                 }
                 
                 return label;

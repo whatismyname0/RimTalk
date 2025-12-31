@@ -131,10 +131,11 @@ public static class ContextBuilder
             var degreeData = GenCollection.FirstOrDefault(trait.def.degreeDatas, d => d.degree == trait.Degree);
             if (degreeData != null)
             {
-                var traitText = infoLevel == PromptService.InfoLevel.Full
-                    ? $"{degreeData.label}:{ContextHelper.Sanitize(degreeData.description, pawn)}"
-                    : degreeData.label;
-                traits.Add(traitText);
+                // var traitText = infoLevel == PromptService.InfoLevel.Full
+                //     ? $"{degreeData.label}:{ContextHelper.Sanitize(degreeData.description, pawn)}"
+                //     : degreeData.label;
+                // traits.Add(traitText);
+                traits.Add(degreeData.label);
             }
         }
 
@@ -361,7 +362,7 @@ public static class ContextBuilder
 
         if (contextSettings.IncludeSurroundings)
         {
-            var items = ContextHelper.CollectNearbyItems(mainPawn, 3);
+            var items = ContextHelper.CollectNearbyItems(mainPawn, 10);
             if (items.Any())
             {
                 var grouped = items.GroupBy(i => i).Select(g => g.Count() > 1 ? $"{g.Key} x {g.Count()}" : g.Key);
@@ -430,7 +431,7 @@ public static class ContextBuilder
         if (!recentItems.Any()) return null;
 
         var sb = new StringBuilder();
-        sb.Append("Recent Logs:");
+        sb.Append("Actions:");
         foreach (var item in recentItems)
         {
             sb.AppendLine().Append(item);

@@ -69,6 +69,11 @@ public class OpenAIClient : IAIClient
         {
             Model = _model,
             Messages = allMessages,
+            Temperature = 1,
+            TopP = .9,
+            FrequencyPenalty = .1,
+            PresencePenalty = .4,
+
             Stream = true,
             StreamOptions = new StreamOptions { IncludeUsage = true }
         };
@@ -124,7 +129,7 @@ public class OpenAIClient : IAIClient
                 throw new Exception(webRequest.error);
             }
             
-            var fullResponse = streamingHandler.GetFullText();
+            var fullResponse = JsonUtil.ProcessResponse(streamingHandler.GetFullText());
             var tokens = streamingHandler.GetTotalTokens();
             Logger.Debug($"API response: \n{streamingHandler.GetRawJson()}");
             return new Payload(jsonContent, fullResponse, tokens);
@@ -163,12 +168,16 @@ public class OpenAIClient : IAIClient
         var request = new OpenAIRequest
         {
             Model = _model,
-            Messages = allMessages
+            Messages = allMessages,
+            Temperature = 1,
+            TopP = .9,
+            FrequencyPenalty = .1,
+            PresencePenalty = .4,
         };
 
         string jsonContent = JsonUtil.SerializeToJson(request);
         var response = await GetCompletionAsync(jsonContent);
-        var content = response?.Choices?[0]?.Message?.Content;
+        var content = JsonUtil.ProcessResponse(response?.Choices?[0]?.Message?.Content);
         var tokens = response?.Usage?.TotalTokens ?? 0;
         return new Payload(jsonContent, content, tokens);
     }

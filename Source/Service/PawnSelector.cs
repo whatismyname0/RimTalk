@@ -20,7 +20,7 @@ public class PawnSelector
     }
 
     private static List<Pawn> GetNearbyPawnsInternal(Pawn pawn1, Pawn pawn2 = null,
-        DetectionType detectionType = DetectionType.Hearing, bool onlyTalkable = false, int maxResults = 10)
+        DetectionType detectionType = DetectionType.Hearing, bool onlyTalkable = false, int maxResults = 50)
     {
         float baseRange = detectionType == DetectionType.Hearing ? HearingRange : ViewingRange;
         PawnCapacityDef capacityDef = detectionType == DetectionType.Hearing

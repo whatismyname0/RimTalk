@@ -213,7 +213,7 @@ public static class TalkService
         TalkResponse talkResponse = ConsumeTalk(pawnState);
         pawnState.LastTalkTick = GenTicks.TicksGame;
 
-        return talkResponse.Text;
+        return talkResponse.GetText();
     }
 
     /// <summary>
@@ -223,7 +223,7 @@ public static class TalkService
     {
         // Failsafe check
         if (pawnState.TalkResponses.Empty()) 
-            return new TalkResponse(TalkType.Other, null!, "");
+            return new TalkResponse(TalkType.Other, null!, "", "");
         
         var talkResponse = pawnState.TalkResponses.First();
         pawnState.TalkResponses.Remove(talkResponse);
@@ -244,6 +244,7 @@ public static class TalkService
         var playLogEntryInteraction = new PlayLogEntry_RimTalkInteraction(intDef, pawn, recipient, null);
 
         Find.PlayLog.Add(playLogEntryInteraction);
+        Logger.Message($"[{pawn.LabelShort}] says to [{recipient.LabelShort}]: \"{talk.GetText()}\"");
 
         if (Settings.Get().ApplyMoodAndSocialEffects && pawn != recipient)
         {
