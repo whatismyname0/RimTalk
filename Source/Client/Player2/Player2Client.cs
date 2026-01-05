@@ -17,8 +17,8 @@ public class Player2Client : IAIClient
     private readonly string _apiKey;
     private readonly bool _isLocalConnection;
     private const string GameClientId = "019a8368-b00b-72bc-b367-2825079dc6fb";
-    private const string BaseUrl = "https://api.player2.game/v1";
-    private const string LocalUrl = "http://localhost:4315/v1";
+    private static string BaseUrl => AIProvider.Player2.GetEndpointUrl();
+    private const string LocalUrl = "http://localhost:4315";
     private static DateTime _lastHealthCheck = DateTime.MinValue;
     private static bool _healthCheckActive = false;
 
@@ -241,11 +241,11 @@ public class Player2Client : IAIClient
 
         try
         {
-            Logger.Debug($"Player2 API streaming request ({(_isLocalConnection ? "local" : "remote")}): {GetApiUrl()}/chat/completions\n{jsonContent}");
+            Logger.Debug($"Player2 API streaming request ({(_isLocalConnection ? "local" : "remote")}): {GetApiUrl()}/v1/chat/completions\n{jsonContent}");
 
             byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonContent);
 
-            using var webRequest = new UnityWebRequest($"{GetApiUrl()}/chat/completions", "POST");
+            using var webRequest = new UnityWebRequest($"{GetApiUrl()}/v1/chat/completions", "POST");
             webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
             webRequest.downloadHandler = streamingHandler;
             webRequest.SetRequestHeader("Content-Type", "application/json");
@@ -261,23 +261,34 @@ public class Player2Client : IAIClient
             }
 
             if (webRequest.responseCode == 429)
-                throw new QuotaExceededException("Player2 quota exceeded");
+            {
+                string errorMsg = ErrorUtil.ExtractErrorMessage(streamingHandler.GetAllReceivedText()) ?? "Player2 quota exceeded";
+                var payload = new Payload(GetApiUrl(), null, jsonContent, streamingHandler.GetAllReceivedText(), 0, errorMsg);
+                throw new QuotaExceededException(errorMsg, payload);
+            }
 
             if (webRequest.isNetworkError || webRequest.isHttpError)
             {
-                Logger.Error($"Player2 streaming request failed: {webRequest.responseCode} - {webRequest.error}");
-                throw new Exception($"Player2 API Error: {webRequest.error}");
+                string errorMsg = ErrorUtil.ExtractErrorMessage(streamingHandler.GetAllReceivedText()) ?? webRequest.error;
+                Logger.Error($"Player2 streaming request failed: {webRequest.responseCode} - {errorMsg}");
+                var payload = new Payload(GetApiUrl(), null, jsonContent, streamingHandler.GetAllReceivedText(), 0, errorMsg);
+                throw new AIRequestException(errorMsg, payload);
             }
 
             var fullResponse = streamingHandler.GetFullText();
             var tokens = streamingHandler.GetTotalTokens();
             Logger.Debug($"Player2 streaming response completed. Tokens: {tokens}");
-            return new Payload(jsonContent, fullResponse, tokens);
+            return new Payload(GetApiUrl(), null , jsonContent, fullResponse, tokens);
+        }
+        catch (AIRequestException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             Logger.Error($"Exception in Player2 streaming request: {ex.Message}");
-            throw;
+            var payload = new Payload(GetApiUrl(), null, jsonContent, null, 0, ex.Message);
+            throw new AIRequestException(ex.Message, payload);
         }
     }
 
@@ -299,18 +310,18 @@ public class Player2Client : IAIClient
         var response = await GetCompletionAsync(jsonContent);
         var content = response?.Choices?[0]?.Message?.Content;
         var tokens = response?.Usage?.TotalTokens ?? 0;
-        return new Payload(jsonContent, content, tokens);
+        return new Payload(GetApiUrl(), null, jsonContent, content, tokens);
     }
 
     private async Task<Player2Response> GetCompletionAsync(string jsonContent)
     {
         try
         {
-            Logger.Debug($"Player2 API request ({(_isLocalConnection ? "local" : "remote")}): {GetApiUrl()}/chat/completions\n{jsonContent}");
+            Logger.Debug($"Player2 API request ({(_isLocalConnection ? "local" : "remote")}): {GetApiUrl()}/v1/chat/completions\n{jsonContent}");
 
             byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonContent);
 
-            using var webRequest = new UnityWebRequest($"{GetApiUrl()}/chat/completions", "POST");
+            using var webRequest = new UnityWebRequest($"{GetApiUrl()}/v1/chat/completions", "POST");
             webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.SetRequestHeader("Content-Type", "application/json");
@@ -328,20 +339,31 @@ public class Player2Client : IAIClient
             Logger.Debug($"Player2 API response: {webRequest.responseCode}\n{webRequest.downloadHandler.text}");
 
             if (webRequest.responseCode == 429)
-                throw new QuotaExceededException("Player2 quota exceeded");
+            {
+                string errorMsg = ErrorUtil.ExtractErrorMessage(webRequest.downloadHandler.text) ?? "Player2 quota exceeded";
+                var payload = new Payload(GetApiUrl(), null, jsonContent, webRequest.downloadHandler.text, 0, errorMsg);
+                throw new QuotaExceededException(errorMsg, payload);
+            }
 
             if (webRequest.isNetworkError || webRequest.isHttpError)
             {
-                Logger.Error($"Player2 request failed: {webRequest.responseCode} - {webRequest.error}");
-                throw new Exception($"Player2 API Error: {webRequest.error}");
+                string errorMsg = ErrorUtil.ExtractErrorMessage(webRequest.downloadHandler.text) ?? webRequest.error;
+                Logger.Error($"Player2 request failed: {webRequest.responseCode} - {errorMsg}");
+                var payload = new Payload(GetApiUrl(), null, jsonContent, webRequest.downloadHandler.text, 0, errorMsg);
+                throw new AIRequestException(errorMsg, payload);
             }
 
             return JsonUtil.DeserializeFromJson<Player2Response>(webRequest.downloadHandler.text);
         }
+        catch (AIRequestException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             Logger.Error($"Exception in Player2 API request: {ex.Message}");
-            throw;
+            var payload = new Payload(GetApiUrl(), null, jsonContent, null, 0, ex.Message);
+            throw new AIRequestException(ex.Message, payload);
         }
     }
 
@@ -416,7 +438,7 @@ public class Player2Client : IAIClient
 
         try
         {
-            using var webRequest = new UnityWebRequest($"{GetApiUrl()}/health", "GET");
+            using var webRequest = new UnityWebRequest($"{GetApiUrl()}/v1/health", "GET");
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.SetRequestHeader("Authorization", $"Bearer {_apiKey}");
             webRequest.SetRequestHeader("X-Game-Client-Id", GameClientId);
