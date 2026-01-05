@@ -8,9 +8,8 @@ using RimTalk.Client.Player2;
 using RimTalk.Data;
 using RimWorld;
 using UnityEngine;
-using UnityEngine.Networking;
 using Verse;
-using Logger = RimTalk.Util.Logger;
+using Verse.Sound;
 
 namespace RimTalk;
 
@@ -123,204 +122,210 @@ public partial class Settings
             DrawLocalProviderSection(listingStandard, settings);
         }
     }
-
+    
     private void DrawCloudProvidersSection(Listing_Standard listingStandard, RimTalkSettings settings)
     {
-        // Header with add/remove buttons
         Rect headerRect = listingStandard.GetRect(24f);
-        Rect addButtonRect = new Rect(headerRect.x + headerRect.width - 65f, headerRect.y, 30f, 24f);
-        Rect removeButtonRect = new Rect(headerRect.x + headerRect.width - 30f, headerRect.y, 30f, 24f);
-        headerRect.width -= 70f;
+
+        // Header with add button
+        float addBtnSize = 24f; 
+        Rect addButtonRect = new Rect(headerRect.x + headerRect.width - addBtnSize, headerRect.y, addBtnSize, addBtnSize);
+        headerRect.width -= (addBtnSize + 5f); 
 
         Widgets.Label(headerRect, "RimTalk.Settings.CloudApiConfigurations".Translate());
 
-        // Add description for cloud providers
         Text.Font = GameFont.Tiny;
         GUI.color = Color.gray;
         Rect cloudDescRect = listingStandard.GetRect(Text.LineHeight * 2);
-        cloudDescRect.width -= 70f;
+        cloudDescRect.width -= 35f;
         Widgets.Label(cloudDescRect, "RimTalk.Settings.CloudApiConfigurationsDesc".Translate());
         GUI.color = Color.white;
-        Text.Font = GameFont.Small;
 
+        // Draw Add Button (+)
+        Color prevColor = GUI.color;
+        GUI.color = Color.green;
         if (Widgets.ButtonText(addButtonRect, "+"))
         {
+            SoundDefOf.Click.PlayOneShotOnCamera(null);
             settings.CloudConfigs.Add(new ApiConfig());
         }
-
-        // Only show remove button if there are configs to remove and more than 1
-        GUI.enabled = settings.CloudConfigs.Count > 1;
-        if (Widgets.ButtonText(removeButtonRect, "−"))
-        {
-            // Remove the last configuration
-            if (settings.CloudConfigs.Count > 1)
-            {
-                settings.CloudConfigs.RemoveAt(settings.CloudConfigs.Count - 1);
-            }
-        }
-
-        GUI.enabled = true;
-
+        GUI.color = prevColor;
+        
         listingStandard.Gap(6f);
 
-        Rect tableHeaderRect = listingStandard.GetRect(24f);
+        // --- Table Headers ---
+        Rect tableHeaderRect = listingStandard.GetRect(20f);
         float x = tableHeaderRect.x;
         float y = tableHeaderRect.y;
         float height = tableHeaderRect.height;
+        float totalWidth = tableHeaderRect.width;
 
-        x += 60f;
-
-        float providerWidth = 100f;
-        float apiKeyWidth = 240f;
-        float modelWidth = 200f;
-        float baseUrlWidth = 355f;
+        float providerWidth = 90f;
+        float modelWidth = 190f; 
+        float controlsWidth = 100f; 
 
         Rect providerHeaderRect = new Rect(x, y, providerWidth, height);
         Widgets.Label(providerHeaderRect, "RimTalk.Settings.ProviderHeader".Translate());
-        x += providerWidth + 5f;
-
-        Rect apiKeyHeaderRect = new Rect(x, y, apiKeyWidth, height);
+        
+        float middleStartX = x + providerWidth + 5f;
+        Rect apiKeyHeaderRect = new Rect(middleStartX, y, 200f, height);
         Widgets.Label(apiKeyHeaderRect, "RimTalk.Settings.ApiKeyHeader".Translate());
-        x += apiKeyWidth + 5f;
 
-        Rect modelHeaderRect = new Rect(x, y, modelWidth, height);
+        Rect modelHeaderRect = new Rect(totalWidth - controlsWidth - modelWidth - 5f, y, modelWidth, height);
         Widgets.Label(modelHeaderRect, "RimTalk.Settings.ModelHeader".Translate());
-        x += modelWidth + 5f;
 
-        if (settings.CloudConfigs.Any(c => c.Provider == AIProvider.Custom))
-        {
-            Rect baseUrlHeaderRect = new Rect(x, y, baseUrlWidth, height);
-            var labelText = "RimTalk.Settings.BaseUrlLabel".Translate() + " [?]";
-            Widgets.Label(baseUrlHeaderRect, labelText);
-            TooltipHandler.TipRegion(baseUrlHeaderRect, "RimTalk_Settings_Api_BaseUrlInfo".Translate());
-            x += baseUrlWidth + 5f;
-        }
-
-        Rect enabledHeaderRect = new Rect(tableHeaderRect.xMax - 70f, y, 70f, height);
+        Rect enabledHeaderRect = new Rect(totalWidth - controlsWidth + 5f, y, controlsWidth, height);
         Widgets.Label(enabledHeaderRect, "RimTalk.Settings.EnabledHeader".Translate());
 
-        listingStandard.Gap(6f);
+        listingStandard.Gap(3f);
 
         for (int i = 0; i < settings.CloudConfigs.Count; i++)
         {
-            DrawCloudConfigRow(listingStandard, settings.CloudConfigs[i], i, settings.CloudConfigs);
-            listingStandard.Gap(3f);
+            if (DrawCloudConfigRow(listingStandard, settings.CloudConfigs[i], i, settings.CloudConfigs))
+            {
+                settings.CloudConfigs.RemoveAt(i);
+                i--;
+            }
+            listingStandard.Gap(2f);
         }
+
+        Text.Font = GameFont.Small;
     }
 
-    private void DrawCloudConfigRow(Listing_Standard listingStandard, ApiConfig config, int index, List<ApiConfig> configs)
+    private bool DrawCloudConfigRow(Listing_Standard listingStandard, ApiConfig config, int index, List<ApiConfig> configs)
     {
-        Rect rowRect = listingStandard.GetRect(24f);
+        Text.Font = GameFont.Tiny;
+
+        Rect rowRect = listingStandard.GetRect(22f);
         float x = rowRect.x;
         float y = rowRect.y;
         float height = rowRect.height;
+        float totalWidth = rowRect.width;
 
-        DrawReorderButtons(ref x, y, height, index, configs);
-        DrawProviderDropdown(ref x, y, height, config);
-        DrawApiKeyInput(ref x, y, height, config);
+        float providerWidth = 90f;
+        float modelWidth = 190f;
+        float controlsWidth = 100f;
+        float gap = 5f;
 
+        float middleZoneWidth = totalWidth - providerWidth - modelWidth - controlsWidth - (gap * 3);
+        float middleStartX = x + providerWidth + gap;
+
+        Color originalColor = GUI.color;
+        if (!config.IsEnabled)
+        {
+            GUI.color = new Color(0.7f, 0.7f, 0.7f, 0.8f);
+        }
+
+        // 1. Provider
+        DrawProviderDropdown(x, y, height, providerWidth, config);
+        
+        // 2. Middle Zone
         if (config.Provider == AIProvider.Custom)
         {
-            DrawCustomProviderRow(ref x, y, height, config);
+            float keyWidth = (middleZoneWidth * 0.4f) - (gap / 2);
+            float urlWidth = (middleZoneWidth * 0.6f) - (gap / 2);
+
+            DrawApiKeyInput(middleStartX, y, height, keyWidth, config);
+            DrawBaseUrlInput(middleStartX + keyWidth + gap, y, height, urlWidth, config);
         }
         else
         {
-            DrawDefaultProviderRow(ref x, y, height, config);
+            DrawApiKeyInput(middleStartX, y, height, middleZoneWidth, config);
         }
 
-        DrawEnableToggle(rowRect, y, height, config);
+        // 3. Model
+        float modelStartX = middleStartX + middleZoneWidth + gap;
+        if (config.Provider == AIProvider.Custom)
+        {
+            DrawCustomModelInput(modelStartX, y, height, modelWidth, config);
+        }
+        else
+        {
+            DrawDefaultModelSelector(modelStartX, y, height, modelWidth, config);
+        }
+
+        GUI.color = originalColor;
+
+        // 4. Controls
+        float btnSize = 22f;
+        float btnGap = 2f;
+
+        float deleteX = totalWidth - btnSize; 
+        float downX = deleteX - btnGap - btnSize;
+        float upX = downX - btnGap - btnSize;
+
+        float controlsStartX = totalWidth - controlsWidth;
+        float checkboxSpaceWidth = upX - controlsStartX;
+        
+        float checkboxX = controlsStartX + (checkboxSpaceWidth - 24f) / 2f;
+        
+        Rect toggleRect = new Rect(checkboxX, y, 24f, height);
+        Widgets.Checkbox(new Vector2(toggleRect.x, toggleRect.y), ref config.IsEnabled, 20f);
+        if (Mouse.IsOver(toggleRect)) TooltipHandler.TipRegion(toggleRect, "Enable/Disable");
+
+        DrawReorderButtons(upX, y, height, index, configs);
+
+        Rect deleteRect = new Rect(deleteX, y, btnSize, height);
+        bool deleteClicked = false;
+        bool canDelete = configs.Count > 1;
+
+        Color prevColor = GUI.color;
+        if (canDelete)
+        {
+            GUI.color = new Color(1f, 0.3f, 0.3f);
+        }
+        else
+        {
+            GUI.color = Color.gray;
+        }
+
+        if (Widgets.ButtonText(deleteRect, "×", active: canDelete))
+        {
+            SoundDefOf.Click.PlayOneShotOnCamera(null);
+            deleteClicked = true;
+        }
+        GUI.color = prevColor;
+
+        Text.Font = GameFont.Tiny;
+        return deleteClicked;
     }
 
-    private void DrawReorderButtons(ref float x, float y, float height, int index, List<ApiConfig> configs)
+    private void DrawReorderButtons(float x, float y, float height, int index, List<ApiConfig> configs)
     {
-        Rect upButtonRect = new Rect(x, y, 24f, height);
+        float btnSize = 22f;
+        Rect upButtonRect = new Rect(x, y, btnSize, height);
+        
         if (Widgets.ButtonText(upButtonRect, "▲") && index > 0)
         {
+            SoundDefOf.Click.PlayOneShotOnCamera(null);
             (configs[index], configs[index - 1]) = (configs[index - 1], configs[index]);
         }
-        x += 30f;
 
-        Rect downButtonRect = new Rect(x, y, 24f, height);
+        Rect downButtonRect = new Rect(x + btnSize + 2f, y, btnSize, height);
+
         if (Widgets.ButtonText(downButtonRect, "▼") && index < configs.Count - 1)
         {
+            SoundDefOf.Click.PlayOneShotOnCamera(null);
             (configs[index], configs[index + 1]) = (configs[index + 1], configs[index]);
         }
-        x += 30f;
     }
 
-    private void DrawProviderDropdown(ref float x, float y, float height, ApiConfig config)
+    private void DrawDefaultModelSelector(float x, float y, float height, float width, ApiConfig config)
     {
-        Rect providerRect = new Rect(x, y, 100f, height);
-        if (Widgets.ButtonText(providerRect, config.Provider.ToString()))
-        {
-            List<FloatMenuOption> providerOptions =
-            [
-                new(nameof(AIProvider.Google), () => {
-                    config.Provider = AIProvider.Google;
-                    config.SelectedModel = Constant.ChooseModel;
-                }),
-                new(nameof(AIProvider.OpenAI), () => {
-                    config.Provider = AIProvider.OpenAI;
-                    config.SelectedModel = Constant.ChooseModel;
-                }),
-                new(nameof(AIProvider.DeepSeek), () => {
-                    config.Provider = AIProvider.DeepSeek;
-                    config.SelectedModel = Constant.ChooseModel;
-                }),
-                new(nameof(AIProvider.Grok), () => {
-                    config.Provider = AIProvider.Grok;
-                    config.SelectedModel = Constant.ChooseModel;
-                }),
-                new(nameof(AIProvider.GLM), () => {
-                    config.Provider = AIProvider.GLM;
-                    config.SelectedModel = Constant.ChooseModel;
-                }),
-                new(nameof(AIProvider.OpenRouter), () => {
-                    config.Provider = AIProvider.OpenRouter;
-                    config.SelectedModel = Constant.ChooseModel;
-                }),
-                new(nameof(AIProvider.Player2), () => {
-                    config.Provider = AIProvider.Player2;
-                    config.SelectedModel = "Default";
-                    Player2Client.CheckPlayer2StatusAndNotify();
-                }),
-                new(nameof(AIProvider.Custom), () => {
-                    config.Provider = AIProvider.Custom;
-                    config.SelectedModel = Constant.ChooseModel;
-                })
-            ];
-            Find.WindowStack.Add(new FloatMenu(providerOptions));
-        }
-        x += 105f;
-    }
-
-    private void DrawApiKeyInput(ref float x, float y, float height, ApiConfig config)
-    {
-        Rect apiKeyRect = new Rect(x, y, 240f, height);
-        config.ApiKey = Widgets.TextField(apiKeyRect, config.ApiKey);
-        x += 245f;
-    }
-
-    private void DrawCustomProviderRow(ref float x, float y, float height, ApiConfig config)
-    {
-        Rect customModelRect = new Rect(x, y, 200f, height);
-        config.CustomModelName = Widgets.TextField(customModelRect, config.CustomModelName);
-        x += 205f;
-
-        Rect baseUrlRect = new Rect(x, y, 150f, height);
-        config.BaseUrl = Widgets.TextField(baseUrlRect, config.BaseUrl);
-        x += 155f;
-    }
-
-    private void DrawDefaultProviderRow(ref float x, float y, float height, ApiConfig config)
-    {
-        Rect modelRect = new Rect(x, y, 200f, height);
+        Rect modelRect = new Rect(x, y, width, height);
         if (config.SelectedModel == "Custom")
         {
-            config.CustomModelName = Widgets.TextField(modelRect, config.CustomModelName);
-            Rect backButton = new Rect(modelRect.xMax + 5, y, 24, height);
-            if (Widgets.ButtonText(backButton, "X"))
+            float xButtonWidth = 22f;
+            float textFieldWidth = width - xButtonWidth - 2f;
+
+            Rect textFieldRect = new Rect(x, y, textFieldWidth, height);
+            Rect backButtonRect = new Rect(x + textFieldWidth + 2f, y, xButtonWidth, height);
+
+            config.CustomModelName = DrawTextFieldWithPlaceholder(textFieldRect, config.CustomModelName, "Model ID");
+            
+            if (Widgets.ButtonText(backButtonRect, "×"))
             {
+                SoundDefOf.Click.PlayOneShotOnCamera(null);
                 config.SelectedModel = Constant.ChooseModel;
             }
         }
@@ -331,7 +336,82 @@ public partial class Settings
                 ShowModelSelectionMenu(config);
             }
         }
-        x += 205f;
+    }
+
+    private string DrawTextFieldWithPlaceholder(Rect rect, string text, string placeholder)
+    {
+        string result = Widgets.TextField(rect, text);
+        
+        if (string.IsNullOrEmpty(result))
+        {
+            TextAnchor originalAnchor = Text.Anchor;
+            Color originalColor = GUI.color;
+
+            Text.Anchor = TextAnchor.MiddleLeft;
+            GUI.color = new Color(0.6f, 0.6f, 0.6f, 0.7f); 
+            
+            Rect labelRect = new Rect(rect.x + 5f, rect.y, rect.width - 5f, rect.height);
+            Widgets.Label(labelRect, placeholder);
+
+            GUI.color = originalColor;
+            Text.Anchor = originalAnchor;
+        }
+
+        return result;
+    }
+
+    private void DrawProviderDropdown(float x, float y, float height, float width, ApiConfig config)
+    {
+        Rect providerRect = new Rect(x, y, width, height);
+        if (Widgets.ButtonText(providerRect, config.Provider.GetLabel()))
+        {
+            List<FloatMenuOption> providerOptions = [];
+            foreach (AIProvider provider in Enum.GetValues(typeof(AIProvider)))
+            {
+                if (provider is AIProvider.None or AIProvider.Local) continue;
+                
+                providerOptions.Add(new FloatMenuOption(provider.GetLabel(), () =>
+                {
+                    config.Provider = provider;
+                    switch (provider)
+                    {
+                        case AIProvider.Player2:
+                            config.SelectedModel = "Default";
+                            Player2Client.CheckPlayer2StatusAndNotify();
+                            break;
+                        case AIProvider.Custom:
+                            config.SelectedModel = "Custom";
+                            break;
+                        default:
+                            config.SelectedModel = Constant.ChooseModel;
+                            break;
+                    }
+                }));
+            }
+            Find.WindowStack.Add(new FloatMenu(providerOptions));
+        }
+    }
+
+    private void DrawApiKeyInput(float x, float y, float height, float width, ApiConfig config)
+    {
+        Rect apiKeyRect = new Rect(x, y, width, height);
+        config.ApiKey = DrawTextFieldWithPlaceholder(apiKeyRect, config.ApiKey, "Paste API Key...");
+    }
+
+    private void DrawBaseUrlInput(float x, float y, float height, float width, ApiConfig config)
+    {
+        Rect baseUrlRect = new Rect(x, y, width, height);
+        config.BaseUrl = DrawTextFieldWithPlaceholder(baseUrlRect, config.BaseUrl, "https://...");
+        if (Mouse.IsOver(baseUrlRect)) TooltipHandler.TipRegion(baseUrlRect, "RimTalk_Settings_Api_BaseUrlInfo".Translate());
+    }
+
+    private void DrawCustomModelInput(float x, float y, float height, float width, ApiConfig config)
+    {
+        Rect customModelRect = new Rect(x, y, width, height);
+        config.CustomModelName = DrawTextFieldWithPlaceholder(customModelRect, config.CustomModelName, "Model ID");
+        config.SelectedModel = string.IsNullOrWhiteSpace(config.CustomModelName)
+            ? Constant.ChooseModel
+            : config.CustomModelName;
     }
 
     private void ShowModelSelectionMenu(ApiConfig config)
@@ -349,7 +429,7 @@ public partial class Settings
             return;
         }
 
-        string url = GetModelApiUrl(config.Provider);
+        string url = config.Provider.GetListModelsUrl();
         if (string.IsNullOrEmpty(url)) return;
         
         void OpenMenu(List<string> models)
@@ -388,21 +468,6 @@ public partial class Settings
                 }
                 OpenMenu(models);
             }, TaskScheduler.FromCurrentSynchronizationContext());
-        }
-    }
-
-    private string GetModelApiUrl(AIProvider provider)
-    {
-        switch (provider)
-        {
-            case AIProvider.Google: return "https://generativelanguage.googleapis.com/v1beta/models";
-            case AIProvider.OpenAI: return "https://api.openai.com/v1/models";
-            case AIProvider.DeepSeek: return "https://api.deepseek.com/models";
-            case AIProvider.Grok: return "https://api.x.ai/v1/models";
-            case AIProvider.GLM: return "https://api.z.ai/api/paas/v4/models";
-            case AIProvider.OpenRouter: return "https://openrouter.ai/api/v1/models";
-            case AIProvider.Player2:
-            default: return null;
         }
     }
 

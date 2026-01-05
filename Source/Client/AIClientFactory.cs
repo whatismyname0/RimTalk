@@ -1,7 +1,7 @@
+using System.Threading.Tasks;
 using RimTalk.Client.Gemini;
 using RimTalk.Client.OpenAI;
 using RimTalk.Client.Player2;
-using System.Threading.Tasks;
 
 namespace RimTalk.Client;
 
@@ -40,30 +40,24 @@ public static class AIClientFactory
     /// </summary>
     private static async Task<IAIClient> CreateServiceInstanceAsync(ApiConfig config)
     {
+        var model = config.SelectedModel == "Custom" ? config.CustomModelName : config.SelectedModel;
+
+        // 1. Handle Special/Dynamic cases
         switch (config.Provider)
         {
-            case AIProvider.Google:
-                return new GeminiClient();
-            case AIProvider.OpenAI:
-                return new OpenAIClient("https://api.openai.com" + OpenAIClient.OpenAIPath, config.SelectedModel, config.ApiKey);
-            case AIProvider.DeepSeek:
-                return new OpenAIClient("https://api.deepseek.com" + OpenAIClient.OpenAIPath, config.SelectedModel, config.ApiKey);
-            case AIProvider.Grok:
-                return new OpenAIClient("https://api.x.ai" + OpenAIClient.OpenAIPath, config.SelectedModel, config.ApiKey);
-            case AIProvider.GLM:
-                return new OpenAIClient("https://api.z.ai/api/paas/v4/chat/completions", config.SelectedModel, config.ApiKey);
-            case AIProvider.OpenRouter:
-                return new OpenAIClient("https://openrouter.ai/api" + OpenAIClient.OpenAIPath, config.SelectedModel, config.ApiKey);
-            case AIProvider.Player2:
-                // Use async factory method that attempts local app detection before fallback to manual API key
-                return await Player2Client.CreateAsync(config.ApiKey);
-            case AIProvider.Local:
-                return new OpenAIClient(config.BaseUrl, config.CustomModelName);
-            case AIProvider.Custom:
-                return new OpenAIClient(config.BaseUrl, config.CustomModelName, config.ApiKey);
-            default:
-                return null;
+            case AIProvider.Google:  return new GeminiClient();
+            case AIProvider.Player2: return await Player2Client.CreateAsync(config.ApiKey);
+            case AIProvider.Local:   return new OpenAIClient(config.BaseUrl, config.CustomModelName);
+            case AIProvider.Custom:  return new OpenAIClient(config.BaseUrl, config.CustomModelName, config.ApiKey);
         }
+
+        // 2. Handle Standard Clients via Registry
+        if (AIProviderRegistry.Defs.TryGetValue(config.Provider, out var def))
+        {
+            return new OpenAIClient(def.EndpointUrl, model, config.ApiKey, def.ExtraHeaders);
+        }
+
+        return null;
     }
 
     /// <summary>
