@@ -287,13 +287,16 @@ public static class ContextBuilder
             if (Settings.Get().PlayerDialogueMode == Settings.PlayerDialogueMode.Manual)
                 sb.Append($"Generate dialogue starting after this. Do not generate any further lines for {pawns[1].LabelShort}");
             else if (Settings.Get().PlayerDialogueMode == Settings.PlayerDialogueMode.AIDriven)
-                sb.Append($"Generate multi turn dialogues starting after this (do not repeat initial dialogue), beginning with {mainPawn.LabelShort}");
+                if (pawns[1].LabelShort == Settings.Get().PlayerName)
+                    sb.Append($"从 {mainPawn.LabelShort} 开始续写对话, 但 {pawns[1].LabelShort} 不会参加对话.");
+                else
+                    sb.Append($"从 {mainPawn.LabelShort} 开始续写对话");
         }
         else
         {
             if (pawns.Count == 1)
             {
-                sb.Append($"{shortName} short monologue");
+                sb.Append($"生成 {shortName} 连续的多句独白.");
             }
             else if (mainPawn.IsInCombat() || mainPawn.GetMapRole() == MapRole.Invading)
             {
@@ -302,18 +305,18 @@ public static class ContextBuilder
 
                 talkRequest.TalkType = TalkType.Urgent;
                 sb.Append(mainPawn.IsSlave || mainPawn.IsPrisoner
-                    ? $"{shortName} dialogue short (worry)"
-                    : $"{shortName} dialogue short, urgent tone ({mainPawn.GetMapRole().ToString().ToLower()}/command)");
+                    ? $"生成从 {shortName} 开始的略微焦急紧张的对话"
+                    : $"生成从 {shortName} 开始的急迫的对话 ({mainPawn.GetMapRole().ToString().ToLower()}/command)");
             }
             else
             {
-                sb.Append($"{shortName} starts conversation, taking turns");
+                sb.Append($"生成从 {shortName} 开始的轮流对话.");
             }
 
             if (mainPawn.InMentalState)
-                sb.Append("\nbe dramatic (mental break)");
+                sb.Append("\n(这人崩溃了,发言不讲逻辑)");
             else if (mainPawn.Downed && !mainPawn.IsBaby())
-                sb.Append("\n(downed in pain. Short, strained dialogue)");
+                sb.Append("\n(这人倒地了,发言虚弱不清)");
             else
                 sb.Append($"\n{talkRequest.Prompt}");
         }
@@ -363,7 +366,7 @@ public static class ContextBuilder
         if (contextSettings.IncludeSurroundings)
         {
             {
-                var surroundingsText = ContextHelper.CollectNearbyContextText(mainPawn, 10);
+                var surroundingsText = ContextHelper.CollectNearbyContextText(mainPawn, 20);
                 if (!string.IsNullOrEmpty(surroundingsText))
                 {
                     sb.Append("\nSurroundings:\n");
@@ -431,13 +434,16 @@ public static class ContextBuilder
         }
 
         if (!recentItems.Any()) return null;
+        recentItems = recentItems.TakeLast(3).ToList();
+        recentItems[recentItems.Count - 1] = "正在进行:"+recentItems.Last();
 
         var sb = new StringBuilder();
-        sb.Append("Actions:");
+        sb.Append("Actions:\n{");
         foreach (var item in recentItems)
         {
             sb.AppendLine().Append(item);
         }
+        sb.Append("}");
 
         return sb.ToString();
     }

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using RimTalk.Data;
 using RimWorld;
+using RimWorld.Planet;
 using Verse;
 using Verse.AI;
 using Verse.AI.Group;
@@ -83,11 +85,20 @@ public static class PawnUtil
         {
             if (pawn.GetMapRole() == MapRole.Invading)
                 return includeFaction && pawn.Faction != null ? $"Enemy Group({pawn.Faction.Name})" : "Enemy";
-            return "Enemy Defender";
+            return includeFaction && pawn.Faction != null ? $"Enemy Defender({pawn.Faction.Name})" : "Enemy Defender";
         }
 
         if (pawn.IsVisitor())
-            return includeFaction && pawn.Faction != null ? $"Visitor Group({pawn.Faction.Name})" : "Visitor";
+        {
+            StringBuilder sb = new StringBuilder();
+
+            sb.Append("Visitor");
+            if (includeFaction && pawn.Faction != null)
+                sb.Append($" Group({pawn.Faction.Name})");
+            sb.Append($"({pawn.GetLord()?.LordJob?.GetReport(pawn) ?? ""})");
+
+            return sb.ToString();
+        }
         if (pawn.IsQuestLodger()) return "Lodger";
         if (pawn.IsFreeColonist) return pawn.GetMapRole() == MapRole.Invading ? "Invader" : "Colonist";
         return null;
@@ -237,17 +248,17 @@ public static class PawnUtil
     {
         string activity = pawn.GetActivity();
 
-        if (useOptimization || string.IsNullOrEmpty(activity))
+        // if (useOptimization || string.IsNullOrEmpty(activity))
             return activity;
 
-        return DecorateText(activity, relevantPawns);
+        // return DecorateText(activity, relevantPawns);
     }
 
     private static void AddContextualInfo(Pawn pawn, List<string> lines, ref bool isInDanger)
     {
         if (pawn.IsVisitor())
         {
-            lines.Add("Visiting user colony");
+            lines.Add($"{pawn.GetLord()?.LordJob?.GetReport(pawn) ?? "Doing something"}");
             return;
         }
 

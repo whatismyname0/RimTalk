@@ -69,16 +69,19 @@ public class OpenAIClient : IAIClient
         {
             Model = _model,
             Messages = allMessages,
-            Temperature = 1,
-            TopP = .9,
+            Temperature = 1.3,
+            TopP = 1,
             FrequencyPenalty = .1,
-            PresencePenalty = .4,
+            PresencePenalty = .05,
 
             Stream = true,
-            StreamOptions = new StreamOptions { IncludeUsage = true }
+            StreamOptions = new StreamOptions { IncludeUsage = true },
+            // ResponseFormat = new Dictionary<string, string> {{"type", "json_object"}}
         };
 
         string jsonContent = JsonUtil.SerializeToJson(request);
+
+        jsonContent = jsonContent[..jsonContent.LastIndexOf('}')] + @",""response_format"":{""type"":""json_object""}}";
         
         var jsonParser = new JsonStreamParser<T>();
         var streamingHandler = new OpenAIStreamHandler(contentChunk =>
@@ -169,13 +172,17 @@ public class OpenAIClient : IAIClient
         {
             Model = _model,
             Messages = allMessages,
-            Temperature = 1,
-            TopP = .9,
+            Temperature = 1.3,
+            TopP = 1,
             FrequencyPenalty = .1,
-            PresencePenalty = .4,
+            PresencePenalty = .05,
+
+            // ResponseFormat = new Dictionary<string, string> {{"type", "json_object"}}
         };
 
         string jsonContent = JsonUtil.SerializeToJson(request);
+
+        jsonContent = jsonContent[..jsonContent.LastIndexOf('}')] + @",""response_format"":{""type"":""json_object""}}";
         var response = await GetCompletionAsync(jsonContent);
         var content = JsonUtil.ProcessResponse(response?.Choices?[0]?.Message?.Content);
         var tokens = response?.Usage?.TotalTokens ?? 0;

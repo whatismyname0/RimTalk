@@ -111,7 +111,7 @@ public static class JsonUtil
             .Replace("，",",")
             .Replace("（","(")
             .Replace("）",")")
-            .Replace(")(",")")
+            .Replace(")(","")
             .Replace("“","\"")
             .Replace("”","\"")
             .Replace("＂","\"")

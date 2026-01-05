@@ -42,6 +42,9 @@ public class OpenAIRequest
 
     [DataMember(Name = "stream_options", EmitDefaultValue = false)]
     public StreamOptions StreamOptions { get; set; }
+
+    [DataMember(Name = "response_format", EmitDefaultValue = false)]
+    public Dictionary<string, string> ResponseFormat { get; set; }
 }
 
 [DataContract]
@@ -49,6 +52,13 @@ public class StreamOptions
 {
     [DataMember(Name = "include_usage", EmitDefaultValue = false)]
     public bool? IncludeUsage { get; set; }
+}
+
+[DataContract]
+public class LlmCacheOptions
+{
+    [DataMember(Name = "enabled", EmitDefaultValue = false)]
+    public bool? Enabled { get; set; }
 }
 
 [DataContract]
