@@ -37,6 +37,12 @@ public class RimTalkSettings : ModSettings
     public int DisableAiAtSpeed = 0;
     public Settings.ButtonDisplayMode ButtonDisplay = Settings.ButtonDisplayMode.Toggle;
 
+    // OpenAI Parameters
+    public float OpenAITemperature = 1.3f;
+    public float OpenAITopP = 1f;
+    public float OpenAIFrequencyPenalty = 0.1f;
+    public float OpenAIPresencePenalty = 0.4f;
+
     public ContextSettings Context = new();
 
     // Debug mode settings
@@ -190,6 +196,12 @@ public class RimTalkSettings : ModSettings
         Scribe_Values.Look(ref OverlayOpacity, "overlayOpacity", 0.5f);
         Scribe_Values.Look(ref OverlayFontSize, "overlayFontSize", 15f);
         Scribe_Values.Look(ref OverlayDrawAboveUI, "overlayDrawAboveUI", true);
+        
+        // OpenAI Parameters
+        Scribe_Values.Look(ref OpenAITemperature, "openAITemperature", 1.3f);
+        Scribe_Values.Look(ref OpenAITopP, "openAITopP", 1f);
+        Scribe_Values.Look(ref OpenAIFrequencyPenalty, "openAIFrequencyPenalty", 0.1f);
+        Scribe_Values.Look(ref OpenAIPresencePenalty, "openAIPresencePenalty", 0.4f);
 
         // Scribe Debug Overlay Rect
         Rect defaultDebugRect = new Rect(200f, 200f, 600f, 450f);

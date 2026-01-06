@@ -283,20 +283,26 @@ public static class ContextBuilder
     {
         if (talkRequest.TalkType == TalkType.User)
         {
-            sb.Append($"{pawns[1].LabelShort}({pawns[1].GetRole()}) said to '{shortName}: {talkRequest.Prompt}'.");
+            sb.Append($"{pawns[1].LabelShort}({pawns[1].GetRole()}) said to {shortName}: '{talkRequest.Prompt}'.");
             if (Settings.Get().PlayerDialogueMode == Settings.PlayerDialogueMode.Manual)
                 sb.Append($"Generate dialogue starting after this. Do not generate any further lines for {pawns[1].LabelShort}");
             else if (Settings.Get().PlayerDialogueMode == Settings.PlayerDialogueMode.AIDriven)
                 if (pawns[1].LabelShort == Settings.Get().PlayerName)
-                    sb.Append($"从 {mainPawn.LabelShort} 开始续写对话, 但 {pawns[1].LabelShort} 不会参加对话.");
+                    if (pawns.Count == 2)
+                        sb.Append($"从 {mainPawn.LabelShort} 开始续写多次连续的独白发言以回应 {pawns[1].LabelShort}.");
+                    else
+                        sb.Append($"从 {mainPawn.LabelShort} 开始续写多次轮流发言, 但 {pawns[1].LabelShort} 不会参加对话.");
                 else
-                    sb.Append($"从 {mainPawn.LabelShort} 开始续写对话");
+                    sb.Append($"从 {mainPawn.LabelShort} 开始续写多次轮流发言");
         }
         else
         {
             if (pawns.Count == 1)
             {
-                sb.Append($"生成 {shortName} 连续的多句独白.");
+                if (talkRequest.Prompt.StartsWith("[群体讨论]"))
+                    sb.Append($"生成 {shortName} 与其他人群体讨论以下内容的多次轮流发言.");
+                else
+                    sb.Append($"生成 {shortName} 连续的多次独白发言, \"name\"字段应该全为 \"{shortName}\".");
             }
             else if (mainPawn.IsInCombat() || mainPawn.GetMapRole() == MapRole.Invading)
             {
@@ -305,12 +311,12 @@ public static class ContextBuilder
 
                 talkRequest.TalkType = TalkType.Urgent;
                 sb.Append(mainPawn.IsSlave || mainPawn.IsPrisoner
-                    ? $"生成从 {shortName} 开始的略微焦急紧张的对话"
-                    : $"生成从 {shortName} 开始的急迫的对话 ({mainPawn.GetMapRole().ToString().ToLower()}/command)");
+                    ? $"从 {shortName} 开始与他人略微焦急紧张的多次轮流发言"
+                    : $"从 {shortName} 开始与他人急迫的多次轮流发言 ({mainPawn.GetMapRole().ToString().ToLower()}/command)");
             }
             else
             {
-                sb.Append($"生成从 {shortName} 开始的轮流对话.");
+                sb.Append($"从 {shortName} 开始与他人的多次轮流发言.");
             }
 
             if (mainPawn.InMentalState)
@@ -435,13 +441,18 @@ public static class ContextBuilder
 
         if (!recentItems.Any()) return null;
         recentItems = recentItems.TakeLast(3).ToList();
-        recentItems[recentItems.Count - 1] = "正在进行:"+recentItems.Last();
 
         var sb = new StringBuilder();
         sb.Append("Actions:\n{");
         foreach (var item in recentItems)
         {
-            sb.AppendLine().Append(item);
+            var str = item;
+            if (item != recentItems.Last())
+                str = "刚刚做过:" + str;
+            else
+                str = "正在进行:" + str;
+
+            sb.AppendLine().Append(str);
         }
         sb.Append("}");
 

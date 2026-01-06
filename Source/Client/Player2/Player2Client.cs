@@ -151,7 +151,7 @@ public class Player2Client : IAIClient
                 healthRequest.timeout = 2; // 2 second timeout
                 await SendWebRequestAsync(healthRequest);
 
-                if (healthRequest.isNetworkError || healthRequest.isHttpError)
+                if (healthRequest.result == UnityWebRequest.Result.ConnectionError || healthRequest.result == UnityWebRequest.Result.ProtocolError)
                 {
                     Logger.Debug($"Player2 local app health check failed: {healthRequest.error}");
                     return null;
@@ -173,7 +173,7 @@ public class Player2Client : IAIClient
 
                 await SendWebRequestAsync(webRequest);
 
-                if (webRequest.isNetworkError || webRequest.isHttpError)
+                if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
                 {
                     Logger.Debug($"Player2 local login failed: {webRequest.responseCode} - {webRequest.error}");
                     return null;
@@ -267,7 +267,7 @@ public class Player2Client : IAIClient
                 throw new QuotaExceededException(errorMsg, payload);
             }
 
-            if (webRequest.isNetworkError || webRequest.isHttpError)
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                 string errorMsg = ErrorUtil.ExtractErrorMessage(streamingHandler.GetAllReceivedText()) ?? webRequest.error;
                 Logger.Error($"Player2 streaming request failed: {webRequest.responseCode} - {errorMsg}");
@@ -345,7 +345,7 @@ public class Player2Client : IAIClient
                 throw new QuotaExceededException(errorMsg, payload);
             }
 
-            if (webRequest.isNetworkError || webRequest.isHttpError)
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                 string errorMsg = ErrorUtil.ExtractErrorMessage(webRequest.downloadHandler.text) ?? webRequest.error;
                 Logger.Error($"Player2 request failed: {webRequest.responseCode} - {errorMsg}");

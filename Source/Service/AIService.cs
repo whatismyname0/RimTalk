@@ -34,7 +34,13 @@ public static class AIService
             return await client.GetStreamingChatCompletionAsync<TalkResponse>(fullInstruction, currentMessages,
                 talkResponse =>
                 {
-                    if (Cache.GetByName(talkResponse.Name) == null) return;
+                    Logger.Debug($"[AIService] Received TalkResponse: Name={talkResponse.Name}, Text={talkResponse.Text ?? "ERROR"}");
+                    
+                    if (Cache.GetByName(talkResponse.Name) == null)
+                    {
+                        Logger.Warning($"[AIService] Cannot find pawn with name '{talkResponse.Name}' in cache. Skipping this response.");
+                        return;
+                    }
 
                     talkResponse.TalkType = request.TalkType;
 

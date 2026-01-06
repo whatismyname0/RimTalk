@@ -123,6 +123,18 @@
     <RimTalk.Settings.RateLimitWarning>Warning: Longer prompts will consume more tokens and hit rate limits faster.</RimTalk.Settings.RateLimitWarning>
     <RimTalk.Settings.TokenInfo>Current: ~{0} tokens | Recommended limit: {1} tokens</RimTalk.Settings.TokenInfo>
     <RimTalk.Settings.ResetToDefault>Reset to Default</RimTalk.Settings.ResetToDefault>
+    
+    <!-- OpenAI Parameters -->
+    <RimTalk.Settings.OpenAIParameters>OpenAI Parameters</RimTalk.Settings.OpenAIParameters>
+    <RimTalk.Settings.Temperature>Temperature</RimTalk.Settings.Temperature>
+    <RimTalk.Settings.TemperatureTooltip>Controls randomness in responses. Lower values (0.0-0.5) make output more focused and deterministic. Higher values (1.0-2.0) make output more creative and diverse. Default: 1.3</RimTalk.Settings.TemperatureTooltip>
+    <RimTalk.Settings.TopP>Top P</RimTalk.Settings.TopP>
+    <RimTalk.Settings.TopPTooltip>Nucleus sampling: only considers tokens with top_p probability mass. Lower values make responses more focused. Range: 0.0-1.0. Default: 1.0</RimTalk.Settings.TopPTooltip>
+    <RimTalk.Settings.FrequencyPenalty>Frequency Penalty</RimTalk.Settings.FrequencyPenalty>
+    <RimTalk.Settings.FrequencyPenaltyTooltip>Reduces repetition by penalizing tokens based on their frequency. Positive values decrease repetition, negative values encourage it. Range: -2.0 to 2.0. Default: 0.1</RimTalk.Settings.FrequencyPenaltyTooltip>
+    <RimTalk.Settings.PresencePenalty>Presence Penalty</RimTalk.Settings.PresencePenalty>
+    <RimTalk.Settings.PresencePenaltyTooltip>Encourages discussing new topics by penalizing tokens that have already appeared. Positive values increase topic diversity, negative values keep discussions focused. Range: -2.0 to 2.0. Default: 0.4</RimTalk.Settings.PresencePenaltyTooltip>
+    
     <RimTalk.Settings.EventFilterTip>Tip: Only checked event types will be processed by AI. Uncheck types you don't want AI to respond to.</RimTalk.Settings.EventFilterTip>
     <RimTalk.Settings.NoArchivableTypes>No archivable types found. Try starting a game and then rescanning.</RimTalk.Settings.NoArchivableTypes>
 

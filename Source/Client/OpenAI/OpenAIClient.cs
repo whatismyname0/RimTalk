@@ -67,14 +67,16 @@ public class OpenAIClient : IAIClient
             Content = m.message
         }));
 
+
+        var setting = Settings.Get();
         var request = new OpenAIRequest
         {
             Model = _model,
             Messages = allMessages,
-            Temperature = 1.3,
-            TopP = 1,
-            FrequencyPenalty = .1,
-            PresencePenalty = .05,
+            Temperature = setting.OpenAITemperature,
+            TopP = setting.OpenAITopP,
+            FrequencyPenalty = setting.OpenAIFrequencyPenalty,
+            PresencePenalty = setting.OpenAIPresencePenalty,
 
             Stream = true,
             StreamOptions = new StreamOptions { IncludeUsage = true },
@@ -135,7 +137,7 @@ public class OpenAIClient : IAIClient
             
             string responseText = webRequest.downloadHandler?.text;
 
-            if (webRequest.responseCode >= 400 || webRequest.isNetworkError || webRequest.isHttpError)
+            if (webRequest.responseCode >= 400 || webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                  responseText = streamingHandler.GetAllReceivedText();
             }
@@ -152,7 +154,7 @@ public class OpenAIClient : IAIClient
                 throw new QuotaExceededException(errorMsg, payload);
             }
 
-            if (webRequest.isNetworkError || webRequest.isHttpError)
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                 string errorMsg = ErrorUtil.ExtractErrorMessage(responseText) ?? webRequest.error;
                 Logger.Error($"Request failed: {webRequest.responseCode} - {errorMsg}");
@@ -197,14 +199,15 @@ public class OpenAIClient : IAIClient
             Content = m.message
         }));
 
+        var setting = Settings.Get();
         var request = new OpenAIRequest
         {
             Model = _model,
             Messages = allMessages,
-            Temperature = 1.3,
-            TopP = 1,
-            FrequencyPenalty = .1,
-            PresencePenalty = .05,
+            Temperature = setting.OpenAITemperature,
+            TopP = setting.OpenAITopP,
+            FrequencyPenalty = setting.OpenAIFrequencyPenalty,
+            PresencePenalty = setting.OpenAIPresencePenalty,
 
             // ResponseFormat = new Dictionary<string, string> {{"type", "json_object"}}
         };
@@ -269,7 +272,7 @@ public class OpenAIClient : IAIClient
                 throw new QuotaExceededException(errorMsg, payload);
             }
 
-            if (webRequest.isNetworkError || webRequest.isHttpError)
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                 string errorMsg = ErrorUtil.ExtractErrorMessage(responseText) ?? webRequest.error;
                 Logger.Error($"Request failed: {webRequest.responseCode} - {errorMsg}");
@@ -316,7 +319,7 @@ public class OpenAIClient : IAIClient
             await Task.Delay(100);
         }
 
-        if (webRequest.isNetworkError || webRequest.isHttpError)
+        if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
         {
             Logger.Error($"Failed to fetch models: {webRequest.error}");
         }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -10,6 +11,7 @@ public class JsonStreamParser<T> where T : class
     public List<T> Parse(string textChunk)
     {
         _buffer.Append(textChunk);
+        Logger.Debug($"[JsonStreamParser] Received chunk ({textChunk.Length} chars), buffer size: {_buffer.Length}");
         var newObjects = new List<T>();
         string text = _buffer.ToString();
         int searchStart = 0;
@@ -38,11 +40,17 @@ public class JsonStreamParser<T> where T : class
                 if (parsedObject != null)
                 {
                     newObjects.Add(parsedObject);
+                    Logger.Debug($"[JsonStreamParser] Successfully parsed object: {typeof(T).Name}");
+                }
+                else
+                {
+                    Logger.Warning($"[JsonStreamParser] Parsed object is null. JSON: {jsonObj}");
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // Not a valid object, continue searching
+                Logger.Warning($"[JsonStreamParser] Failed to parse JSON object: {ex.Message}\nJSON: {jsonObj}");
             }
 
             searchStart = objEnd + 1;

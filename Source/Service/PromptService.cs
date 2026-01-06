@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using RimTalk.Data;
 using RimTalk.Util;
+using RimWorld;
 using Verse;
 using Verse.AI.Group;
 using Cache = RimTalk.Data.Cache;
@@ -48,6 +49,10 @@ public static class PromptService
         var role = pawn.GetRole(true);
         if (role != null)
             sb.AppendLine($"Role: {role}");
+        
+        var faction = pawn.Faction;
+        if (faction != null && !pawn.IsPlayer())
+            sb.AppendLine($"Faction: {faction.Name}");
         
         AppendIfNotEmpty(sb, ContextBuilder.GetRecentLogsContext(pawn, infoLevel));
 

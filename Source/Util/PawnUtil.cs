@@ -79,8 +79,8 @@ public static class PawnUtil
     public static string GetRole(this Pawn pawn, bool includeFaction = false)
     {
         if (pawn == null) return null;
-        if (pawn.IsPrisoner) return "Prisoner";
-        if (pawn.IsSlave) return "Slave";
+        if (pawn.IsPrisoner) return "Prisoner of Player Colony";
+        if (pawn.IsSlave) return "Slave of Player Colony";
         if (pawn.IsEnemy())
         {
             if (pawn.GetMapRole() == MapRole.Invading)

@@ -224,6 +224,26 @@ public partial class Settings
 
         listingStandard.Gap(24f);
         
+        // OpenAI Parameters Section
+        Text.Font = GameFont.Medium;
+        listingStandard.Label("RimTalk.Settings.OpenAIParameters".Translate().ToString());
+        Text.Font = GameFont.Small;
+        listingStandard.Gap(6f);
+        
+        DrawFloatSliderWithInput(listingStandard, "RimTalk.Settings.Temperature".Translate().ToString(), 
+            ref settings.OpenAITemperature, 0f, 2f, 0.05f, "RimTalk.Settings.TemperatureTooltip".Translate().ToString());
+        
+        DrawFloatSliderWithInput(listingStandard, "RimTalk.Settings.TopP".Translate().ToString(), 
+            ref settings.OpenAITopP, 0f, 1f, 0.05f, "RimTalk.Settings.TopPTooltip".Translate().ToString());
+        
+        DrawFloatSliderWithInput(listingStandard, "RimTalk.Settings.FrequencyPenalty".Translate().ToString(), 
+            ref settings.OpenAIFrequencyPenalty, -2f, 2f, 0.05f, "RimTalk.Settings.FrequencyPenaltyTooltip".Translate().ToString());
+        
+        DrawFloatSliderWithInput(listingStandard, "RimTalk.Settings.PresencePenalty".Translate().ToString(), 
+            ref settings.OpenAIPresencePenalty, -2f, 2f, 0.05f, "RimTalk.Settings.PresencePenaltyTooltip".Translate().ToString());
+        
+        listingStandard.Gap(24f);
+        
         if (listingStandard.ButtonText("RimTalk.Settings.ResetToDefault".Translate().ToString()))
         {
             settings.TalkInterval = 7;
@@ -245,7 +265,58 @@ public partial class Settings
             settings.UseSimpleConfig = true;
             settings.DisableAiAtSpeed = 0;
             settings.ButtonDisplay = ButtonDisplayMode.Toggle;
+            settings.OpenAITemperature = 1.3f;
+            settings.OpenAITopP = 1f;
+            settings.OpenAIFrequencyPenalty = 0.1f;
+            settings.OpenAIPresencePenalty = 0.4f;
         }
+    }
+    
+    private void DrawFloatSliderWithInput(Listing_Standard listingStandard, string label, ref float value, 
+        float min, float max, float precision, string tooltip = null)
+    {
+        Rect lineRect = listingStandard.GetRect(30f);
+        
+        const float inputWidth = 60f;
+        const float gap = 10f;
+        
+        // Label
+        float labelWidth = lineRect.width * 0.35f;
+        Rect labelRect = new Rect(lineRect.x, lineRect.y, labelWidth, lineRect.height);
+        TextAnchor savedAnchor = Text.Anchor;
+        Text.Anchor = TextAnchor.MiddleLeft;
+        Widgets.Label(labelRect, label);
+        Text.Anchor = savedAnchor;
+        
+        // Slider
+        float sliderWidth = lineRect.width - labelWidth - inputWidth - gap * 2;
+        Rect sliderRect = new Rect(labelRect.xMax + gap, lineRect.y + 5f, sliderWidth, lineRect.height - 10f);
+        float newValue = Widgets.HorizontalSlider(sliderRect, value, min, max, false, null, null, null, precision);
+        
+        // Input field
+        Rect inputRect = new Rect(sliderRect.xMax + gap, lineRect.y + 3f, inputWidth, 24f);
+        string buffer = value.ToString("F2");
+        string newBuffer = Widgets.TextField(inputRect, buffer);
+        
+        if (newBuffer != buffer && float.TryParse(newBuffer, out float parsed))
+        {
+            value = Mathf.Clamp(parsed, min, max);
+            // Round to precision
+            value = Mathf.Round(value / precision) * precision;
+        }
+        else
+        {
+            value = newValue;
+            // Round to precision
+            value = Mathf.Round(value / precision) * precision;
+        }
+        
+        if (!string.IsNullOrEmpty(tooltip))
+        {
+            TooltipHandler.TipRegion(lineRect, tooltip);
+        }
+        
+        listingStandard.Gap(6f);
     }
     
     private void DrawCustomConversationOptions(Listing_Standard listingStandard, RimTalkSettings settings)

@@ -123,6 +123,18 @@
     <RimTalk.Settings.RateLimitWarning>警告：较长的提示将消耗更多令牌并更快达到速率限制。</RimTalk.Settings.RateLimitWarning>
     <RimTalk.Settings.TokenInfo>目前：约 {0} 令牌 | 建议限制：{1} 令牌</RimTalk.Settings.TokenInfo>
     <RimTalk.Settings.ResetToDefault>重设为默认</RimTalk.Settings.ResetToDefault>
+    
+    <!-- OpenAI 参数 -->
+    <RimTalk.Settings.OpenAIParameters>OpenAI 参数</RimTalk.Settings.OpenAIParameters>
+    <RimTalk.Settings.Temperature>温度</RimTalk.Settings.Temperature>
+    <RimTalk.Settings.TemperatureTooltip>控制响应的随机性。较低的值（0.0-0.5）使输出更加集中和确定。较高的值（1.0-2.0）使输出更有创意和多样性。默认值：1.3</RimTalk.Settings.TemperatureTooltip>
+    <RimTalk.Settings.TopP>Top P</RimTalk.Settings.TopP>
+    <RimTalk.Settings.TopPTooltip>核采样：只考虑具有 top_p 概率质量的令牌。较低的值使响应更集中。范围：0.0-1.0。默认值：1.0</RimTalk.Settings.TopPTooltip>
+    <RimTalk.Settings.FrequencyPenalty>频率惩罚</RimTalk.Settings.FrequencyPenalty>
+    <RimTalk.Settings.FrequencyPenaltyTooltip>根据令牌的频率对其进行惩罚以减少重复。正值减少重复，负值鼓励重复。范围：-2.0 到 2.0。默认值：0.1</RimTalk.Settings.FrequencyPenaltyTooltip>
+    <RimTalk.Settings.PresencePenalty>存在惩罚</RimTalk.Settings.PresencePenalty>
+    <RimTalk.Settings.PresencePenaltyTooltip>通过惩罚已出现的令牌来鼓励讨论新话题。正值增加话题多样性，负值使讨论更集中。范围：-2.0 到 2.0。默认值：0.4</RimTalk.Settings.PresencePenaltyTooltip>
+    
     <RimTalk.Settings.EventFilterTip>提示：只有勾选的事件类型才会由 AI 处理。取消勾选您不希望 AI 回应的类型。</RimTalk.Settings.EventFilterTip>
     <RimTalk.Settings.NoArchivableTypes>未找到可存档类型。请尝试开始一个游戏然后重新扫描。</RimTalk.Settings.NoArchivableTypes>
 

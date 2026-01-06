@@ -143,7 +143,7 @@ public class GeminiClient : IAIClient
             string responseText = webRequest.downloadHandler?.text;
             if (downloadHandler is GeminiStreamHandler streamHandler)
             {
-                 if (webRequest.responseCode >= 400 || webRequest.isNetworkError || webRequest.isHttpError)
+                 if (webRequest.responseCode >= 400 || webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
                  {
                      responseText = streamHandler.GetAllReceivedText();
                  }
@@ -165,7 +165,7 @@ public class GeminiClient : IAIClient
                 throw new QuotaExceededException(errorMsg, payload);
             }
 
-            if (webRequest.isNetworkError || webRequest.isHttpError)
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                 string errorMsg = ErrorUtil.ExtractErrorMessage(responseText) ?? $"Request failed: {webRequest.responseCode} - {webRequest.error}";
                 Logger.Error(errorMsg);
@@ -221,7 +221,7 @@ public class GeminiClient : IAIClient
             await Task.Delay(100);
         }
 
-        if (webRequest.isNetworkError || webRequest.isHttpError)
+        if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
         {
             Logger.Error($"Failed to fetch Google models: {webRequest.error}");
         }
