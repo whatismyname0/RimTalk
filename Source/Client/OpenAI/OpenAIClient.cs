@@ -85,7 +85,7 @@ public class OpenAIClient : IAIClient
 
         string jsonContent = JsonUtil.SerializeToJson(request);
 
-        jsonContent = jsonContent[..jsonContent.LastIndexOf('}')] + @",""response_format"":{""type"":""json_object""}}";
+        // jsonContent = jsonContent[..jsonContent.LastIndexOf('}')] + @",""response_format"":{""type"":""json_object""}}";
         
         var jsonParser = new JsonStreamParser<T>();
         var streamingHandler = new OpenAIStreamHandler(contentChunk =>
@@ -214,7 +214,7 @@ public class OpenAIClient : IAIClient
 
         string jsonContent = JsonUtil.SerializeToJson(request);
 
-        jsonContent = jsonContent[..jsonContent.LastIndexOf('}')] + @",""response_format"":{""type"":""json_object""}}";
+        // jsonContent = jsonContent[..jsonContent.LastIndexOf('}')] + @",""response_format"":{""type"":""json_object""}}";
         var response = await GetCompletionAsync(jsonContent);
         var content = JsonUtil.ProcessResponse(response?.Choices?[0]?.Message?.Content);
         var tokens = response?.Usage?.TotalTokens ?? 0;

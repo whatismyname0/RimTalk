@@ -8,10 +8,24 @@ public class JsonStreamParser<T> where T : class
 {
     private readonly StringBuilder _buffer = new();
 
+    private int ParseCount = 0;
+    private int LastBufferSize = 0;
+
     public List<T> Parse(string textChunk)
     {
         _buffer.Append(textChunk);
-        Logger.Debug($"[JsonStreamParser] Received chunk ({textChunk.Length} chars), buffer size: {_buffer.Length}");
+
+        if (LastBufferSize > _buffer.Length)
+        {
+            Logger.Debug($"[JsonStreamParser] Total buffer size after {ParseCount} parses: {LastBufferSize} chars");
+            ParseCount = 0;
+        }
+        LastBufferSize = _buffer.Length;
+        ParseCount++;
+        if (ParseCount % 10 == 0)
+        {
+            Logger.Debug($"[JsonStreamParser] Present buffer size after {ParseCount} parses: {_buffer.Length} chars");
+        }
         var newObjects = new List<T>();
         string text = _buffer.ToString();
         int searchStart = 0;

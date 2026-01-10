@@ -9,16 +9,16 @@ public static class Describer
     {
         return wealthTotal switch
         {
-            < 50_000f => "impecunious",
-            < 100_000f => "needy",
-            < 200_000f => "just rid of starving",
-            < 300_000f => "moderately prosperous",
-            < 400_000f => "rich",
-            < 600_000f => "luxurious",
-            < 1_000_000f => "extravagant",
-            < 1_500_000f => "treasures fill the home",
-            < 2_000_000f => "as rich as glitter world",
-            _ => "richest in the galaxy"
+            < 50_000f => "家徒四壁",
+            < 100_000f => "贫穷",
+            < 200_000f => "温饱",
+            < 300_000f => "小康",
+            < 400_000f => "富裕",
+            < 600_000f => "奢华",
+            < 1_000_000f => "大富大贵",
+            < 1_500_000f => "家财万贯",
+            < 2_000_000f => "闪耀世界一般",
+            _ => "全银河最富有"
         };
     }
     

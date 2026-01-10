@@ -17,33 +17,31 @@ public static class RelationsService
         if (pawn?.relations == null) return "";
 
         StringBuilder relationsSb = new StringBuilder();
-
-        foreach (Pawn otherPawn in PawnSelector.GetAllNearByPawns(pawn).Take(Settings.Get().Context.MaxPawnContextCount - 1))
+        var processedPawns = new System.Collections.Generic.HashSet<Pawn>();
+        
+        // Get all pawns from the social tab scope (similar to game's Social tab)
+        var allSocialPawns = GetAllSocialPawns(pawn);
+        
+        foreach (var otherPawn in allSocialPawns)
         {
-            if (otherPawn == pawn || (!otherPawn.RaceProps.Humanlike && !otherPawn.HasVocalLink()) || otherPawn.Dead ||
+            if (otherPawn == null || otherPawn == pawn ||
                 otherPawn.relations is { hidePawnRelations: true }) continue;
-
-            string label = null;
+            if (!processedPawns.Add(otherPawn)) continue;
 
             try
             {
                 float opinionValue = pawn.relations.OpinionOf(otherPawn);
+                string label = null;
 
-                // --- Step 1: Check for the most important direct or family relationship ---
+                // Check if there's an important relation (not acquaintance)
                 PawnRelationDef mostImportantRelation = pawn.GetMostImportantRelation(otherPawn);
-                if (mostImportantRelation != null)
+                if (mostImportantRelation != null && mostImportantRelation.defName != "Acquaintance")
                 {
                     label = mostImportantRelation.GetGenderSpecificLabelCap(otherPawn);
                 }
-
-                // --- Step 2: If no family relation, check for an overriding status (master, slave, etc.) ---
+                
+                // If no important relation, check friend/rival based on opinion
                 if (string.IsNullOrEmpty(label))
-                {
-                    label = GetStatusLabel(pawn, otherPawn);
-                }
-
-                // --- Step 3: If no other label found, fall back to opinion-based relationship ---
-                if (string.IsNullOrEmpty(label) && !pawn.IsVisitor() && !pawn.IsEnemy())
                 {
                     if (opinionValue >= FriendOpinionThreshold)
                     {
@@ -53,23 +51,18 @@ public static class RelationsService
                     {
                         label = "Rival".Translate();
                     }
-                    else
-                    {
-                        label = "Acquaintance".Translate();
-                    }
                 }
 
-                // If we found any relevant relationship, add it to the string.
                 if (!string.IsNullOrEmpty(label))
                 {
                     string pawnName = otherPawn.LabelShort;
-                    string opinion = opinionValue.ToStringWithSign();
-                    relationsSb.Append($"{pawnName}({label}) {opinion}, ");
+                    string deadMarker = otherPawn.Dead ? " (" + "Dead".Translate() + ")" : "";
+                    relationsSb.Append($"{pawnName}{deadMarker}: {label}, ");
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Skip this pawn if opinion calculation fails due to mod conflicts
+                Logger.Warning($"Failed to get relation between {pawn} and {otherPawn}: {ex.Message}");
             }
         }
 
@@ -77,31 +70,37 @@ public static class RelationsService
         {
             // Remove the trailing comma and space
             relationsSb.Length -= 2;
-            return "Relations: " + relationsSb;
+            return $"Relations: {{ {relationsSb} }}";
         }
 
         return "";
     }
 
-    private static string GetStatusLabel(Pawn pawn, Pawn otherPawn)
+    private static System.Collections.Generic.IEnumerable<Pawn> GetAllSocialPawns(Pawn pawn)
     {
-        // Master relationship
-        if ((pawn.IsPrisoner || pawn.IsSlave) && otherPawn.IsFreeNonSlaveColonist)
+        if (pawn?.Map == null) yield break;
+
+        // Get all pawns on the same map (colonists, prisoners, visitors, etc.)
+        // This matches the scope shown in RimWorld's Social tab
+        foreach (Pawn otherPawn in pawn.Map.mapPawns.AllPawnsSpawned)
         {
-            return "Master".Translate();
+            // Include humanlike pawns and animals with vocal links
+            if (otherPawn.RaceProps.Humanlike || otherPawn.HasVocalLink())
+            {
+                yield return otherPawn;
+            }
         }
 
-        // Prisoner or slave labels
-        if (otherPawn.IsPrisoner) return "Prisoner".Translate();
-        if (otherPawn.IsSlave) return "Slave".Translate();
-
-        // Hostile relationship
-        if (pawn.Faction != null && otherPawn.Faction != null && pawn.Faction.HostileTo(otherPawn.Faction))
+        // Also include pawns with direct relations that are not on the map
+        // (like family members who left or died)
+        foreach (var directRelation in pawn.relations.DirectRelations)
         {
-            return "Enemy".Translate();
+            if (directRelation.otherPawn != null && 
+                directRelation.def?.defName != "Acquaintance" &&
+                !directRelation.otherPawn.Spawned)
+            {
+                yield return directRelation.otherPawn;
+            }
         }
-
-        // No special status found
-        return null;
     }
 }

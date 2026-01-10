@@ -23,7 +23,9 @@ public static class ContextBuilder
         var contextSettings = Settings.Get().Context;
         if (!contextSettings.IncludeRace || !ModsConfig.BiotechActive || pawn.genes?.Xenotype == null)
             return null;
-        return $"Race: {pawn.genes.XenotypeLabel}";
+        return $"种族: {(ModsConfig.BiotechActive && pawn.genes?.Xenotype != null
+            ? $"{pawn.def.LabelCap.RawText} - {pawn.genes.XenotypeLabel}"
+            : pawn.def.LabelCap.RawText)}";
     }
 
     public static string GetNotableGenesContext(Pawn pawn, PromptService.InfoLevel infoLevel)
@@ -47,7 +49,10 @@ public static class ContextBuilder
         }
 
         if (notableGenes.Any())
-            return $"Notable Genes: {string.Join(", ", notableGenes)}";
+        {
+            var genesArray = string.Join(",", notableGenes);
+            return $"值得注意的基因:[{genesArray}]";
+        }
         return null;
     }
 
@@ -70,21 +75,27 @@ public static class ContextBuilder
                 .Where(label => !string.IsNullOrEmpty(label));
 
             if (memes?.Any() == true)
-                return $"Memes: {string.Join(", ", memes)}";
+            {
+                var memesArray = string.Join(",", memes);
+                return $"理念:[{memesArray}]";
+            }
         }
         else
         {
-            sb.Append($"Ideology: {ideo.name}");
-
             var memes = ideo.memes?
                 .Where(m => m != null)
                 .Select(m => m.LabelCap.Resolve())
                 .Where(label => !string.IsNullOrEmpty(label));
 
             if (memes?.Any() == true)
-                sb.Append($"\nMemes: {string.Join(", ", memes)}");
-
-            return sb.ToString();
+            {
+                var memesArray = string.Join(",", memes);
+                return $"文化/意识形态: {ideo.name}, 理念:[{memesArray}]";
+            }
+            else
+            {
+                return $"文化/意识形态: {ideo.name}";
+            }
         }
 
         return null;
@@ -102,17 +113,17 @@ public static class ContextBuilder
         if (infoLevel == PromptService.InfoLevel.Short)
         {
             if (pawn.story?.Adulthood != null)
-                return $"Background: {pawn.story.Adulthood.TitleCapFor(pawn.gender)}";
+                return $"人物背景: {pawn.story.Adulthood.TitleCapFor(pawn.gender)}";
         }
         else
         {
             if (pawn.story?.Childhood != null)
-                sb.Append(ContextHelper.FormatBackstory("Childhood", pawn.story.Childhood, pawn, infoLevel));
+                sb.Append(ContextHelper.FormatBackstory("童年经历", pawn.story.Childhood, pawn, infoLevel));
 
             if (pawn.story?.Adulthood != null)
             {
                 if (sb.Length > 0) sb.Append("\n");
-                sb.Append(ContextHelper.FormatBackstory("Adulthood", pawn.story.Adulthood, pawn, infoLevel));
+                sb.Append(ContextHelper.FormatBackstory("成年经历", pawn.story.Adulthood, pawn, infoLevel));
             }
         }
 
@@ -145,8 +156,7 @@ public static class ContextBuilder
 
         if (traits.Any())
         {
-            var separator = infoLevel == PromptService.InfoLevel.Full ? "\n" : ",";
-            return $"Traits: {string.Join(separator, traits)}";
+            return $"人格特点: [{string.Join(",", traits)}]";
         }
         return null;
     }
@@ -157,9 +167,12 @@ public static class ContextBuilder
         if (!contextSettings.IncludeSkills)
             return null;
 
-        var skills = pawn.skills?.skills?.Select(s => $"{s.def.label}: {s.Level}");
+        var skills = pawn.skills?.skills;
         if (skills?.Any() == true)
-            return $"Skills: {string.Join(", ", skills)}";
+        {
+            var skillsJson = string.Join(",", skills.Select(s => $"{s.def.label}: {s.Level}级"));
+            return $"技能等级: {{ {skillsJson} }}";
+        }
         return null;
     }
 
@@ -181,12 +194,27 @@ public static class ContextBuilder
                 .Take(3);
         }
 
-        var healthInfo = string.Join(",", hediffs
+        var healthList = hediffs
             .GroupBy(h => h.def)
-            .Select(g => $"{g.Key.label}({string.Join(",", g.Select(h => h.Part?.Label ?? ""))})"));
+            .Select(g => new { 
+                condition = g.Key.label, 
+                parts = g.Select(h => h.Part?.Label ?? "").Where(p => !string.IsNullOrEmpty(p)).ToList() 
+            })
+            .ToList();
 
-        if (!string.IsNullOrEmpty(healthInfo))
-            return $"Health: {healthInfo}";
+        if (healthList.Any())
+        {
+            var healthJson = string.Join(",", healthList.Select(h => 
+            {
+                if (h.parts.Any())
+                {
+                    var partsArray = string.Join(",", h.parts);
+                    return $"{h.condition}: [{partsArray}]";
+                }
+                return $"{h.condition}";
+            }));
+            return $"健康状况: {{ {healthJson} }}";
+        }
         return null;
     }
 
@@ -200,10 +228,10 @@ public static class ContextBuilder
         if (m?.MoodString != null)
         {
             string mood = pawn.Downed && !pawn.IsBaby()
-                ? "Critical: Downed (in pain/distress)"
+                ? "紧急状况: 倒地!"
                 : pawn.InMentalState
-                    ? $"Mood: {pawn.MentalState?.InspectLine} (in mental break)"
-                    : $"Mood: {m.MoodString} ({(int)(m.CurLevelPercentage * 100)}%)";
+                    ? $"精神状况: {pawn.MentalState?.InspectLine} (精神崩溃中)"
+                    : $"心情: {m.MoodString} ({(int)(m.CurLevelPercentage * 100)}%)";
             return mood;
         }
         return null;
@@ -216,29 +244,30 @@ public static class ContextBuilder
             return null;
 
         var allThoughts = ContextHelper.GetThoughts(pawn);
-        // For Short level, only include latest 3 thoughts
-        var thoughtEntries = infoLevel == PromptService.InfoLevel.Short
-            ? allThoughts.Take(3)
-            : allThoughts;
+        // For Short level, take top 5 positive and top 5 negative mood impacts
+        var thoughtEntries = allThoughts
+                .OrderByDescending(kvp => kvp.Value)
+                .Take(5)
+                .Concat(allThoughts.OrderBy(kvp => kvp.Value).Take(5))
+                .Distinct();
 
-        // Include cachedMoodOffsetOfGroup (if available) along with summed mood offsets
-        var thoughtStrings = thoughtEntries.Select(kvp =>
-        {
-            var t = kvp.Key;
-            var summedOffset = kvp.Value;
-            var summedInt = (int)Math.Round(summedOffset);
-            var cachedField = t.GetType().GetField("cachedMoodOffsetOfGroup", BindingFlags.Public | BindingFlags.Instance);
-            if (cachedField != null)
+        // Include only current mood impact value
+        var thoughtsList = thoughtEntries
+            .Where(kvp => kvp.Key.VisibleInNeedsTab)
+            .Select(kvp =>
             {
-                var cachedVal = (float)cachedField.GetValue(t);
-                var cachedInt = (int)Math.Round(cachedVal);
-                return $"{ContextHelper.Sanitize(t.LabelCap)}({summedInt:+0;-0;0}/{cachedInt:+0;-0;0})";
-            }
-            return $"{ContextHelper.Sanitize(t.LabelCap)}({summedInt:+0;-0;0})";
-        });
+                var t = kvp.Key;
+                var summedOffset = kvp.Value;
+                var summedInt = (int)Math.Round(summedOffset);
+                return new { thought = ContextHelper.Sanitize(t.LabelCap), impact = summedInt };
+            }).ToList();
 
-        if (thoughtStrings.Any())
-            return $"Memory: {string.Join(", ", thoughtStrings)}";
+        if (thoughtsList.Any())
+        {
+            var thoughtsJson = string.Join(",", thoughtsList.Select(t => 
+                $"{t.thought}: {(t.impact>0?"+": "")}{t.impact}"));
+            return $"想法: {{ {thoughtsJson} }}";
+        }
         return null;
     }
 
@@ -266,17 +295,28 @@ public static class ContextBuilder
         if (!contextSettings.IncludeEquipment)
             return null;
 
-        var equipment = new List<string>();
+        var sb = new StringBuilder();
+        sb.AppendLine("装备:{" );
+        
+        var hasAny = false;
         if (pawn.equipment?.Primary != null)
-            equipment.Add($"Weapon: {pawn.equipment.Primary.LabelCap}");
+        {
+            sb.AppendLine($"武器: {pawn.equipment.Primary.LabelCap}");
+            hasAny = true;
+        }
 
         var apparelLabels = pawn.apparel?.WornApparel?.Select(a => a.LabelCap);
         if (apparelLabels?.Any() == true)
-            equipment.Add($"Apparel: {string.Join(", ", apparelLabels)}");
+        {
+            if (hasAny) sb.Append(",\n");
+            var apparelArray = string.Join(",", apparelLabels);
+            sb.Append($"衣着: [{apparelArray}]");
+            hasAny = true;
+        }
 
-        if (equipment.Any())
-            return $"Equipment: {string.Join(", ", equipment)}";
-        return null;
+        sb.Append("}");
+        
+        return hasAny ? sb.ToString() : null;
     }
 
     public static void BuildDialogueType(StringBuilder sb, TalkRequest talkRequest, List<Pawn> pawns, string shortName, Pawn mainPawn)
@@ -340,8 +380,8 @@ public static class ContextBuilder
                 var roomRole = room is { PsychologicallyOutdoors: false } ? room.Role?.label ?? "Room" : "";
 
                 sb.Append(string.IsNullOrEmpty(roomRole)
-                    ? $"\nLocation: {locationStatus};{temperature}C"
-                    : $"\nLocation: {locationStatus};{temperature}C;{roomRole}");
+                    ? $"\n位置: {locationStatus};{temperature}C"
+                    : $"\n位置: {locationStatus};{temperature}C;{roomRole}");
             }
         }
     }
@@ -352,7 +392,7 @@ public static class ContextBuilder
         {
             var terrain = mainPawn.Position.GetTerrain(mainPawn.Map);
             if (terrain != null)
-                sb.Append($"\nTerrain: {terrain.LabelCap}");
+                sb.Append($"\n当前地板: {terrain.LabelCap}");
         }
 
         if (contextSettings.IncludeBeauty)
@@ -361,21 +401,21 @@ public static class ContextBuilder
             if (nearbyCells.Count > 0)
             {
                 var beautySum = nearbyCells.Sum(c => BeautyUtility.CellBeauty(c, mainPawn.Map));
-                sb.Append($"\nCellBeauty: {Describer.Beauty(beautySum / nearbyCells.Count)}");
+                sb.Append($"\n美观度: {Describer.Beauty(beautySum / nearbyCells.Count)}");
             }
         }
 
         var pawnRoom = mainPawn.GetRoom();
         if (contextSettings.IncludeCleanliness && pawnRoom is { PsychologicallyOutdoors: false })
-            sb.Append($"\nCleanliness: {Describer.Cleanliness(pawnRoom.GetStat(RoomStatDefOf.Cleanliness))}");
+            sb.Append($"\n整洁度: {Describer.Cleanliness(pawnRoom.GetStat(RoomStatDefOf.Cleanliness))}");
 
         if (contextSettings.IncludeSurroundings)
         {
             {
-                var surroundingsText = ContextHelper.CollectNearbyContextText(mainPawn, 20);
+                var surroundingsText = ContextHelper.CollectNearbyContextText(mainPawn);
                 if (!string.IsNullOrEmpty(surroundingsText))
                 {
-                    sb.Append("\nSurroundings:\n");
+                    sb.Append("\n周围物体:\n");
                     sb.Append(surroundingsText);
                 }
             }
@@ -388,72 +428,140 @@ public static class ContextBuilder
         if (!contextSettings.IncludeRecentLogs) return null;
         if (infoLevel == PromptService.InfoLevel.Short) return null;
 
-        var entries = Find.PlayLog?.AllEntries;
-        if (entries == null || entries.Count == 0) return null;
-
-        // Last 2 in-game hours (2500 ticks per hour)
-        int ticksWindow = 2500 * 2;
-        int minTicks = GenTicks.TicksGame - ticksWindow;
+        // Time windows: 2 hours and 16 hours (2500 ticks per hour)
+        int twoHoursTicks = 2500 * 2;
+        int sixteenHoursTicks = 2500 * 16;
+        int currentTick = GenTicks.TicksGame;
 
         var ticksField = typeof(LogEntry).GetField("ticksAbs", BindingFlags.NonPublic | BindingFlags.Instance);
-
-        var recentItems = new List<string>();
-
-        for (int i = entries.Count - 1; i >= 0; i--)
+        if (ticksField == null)
         {
-            var entry = entries[i];
-            if (entry == null) continue;
+            Log.Warning("[RimTalk] Failed to reflect ticksAbs field from LogEntry");
+            return null;
+        }
 
-            // Exclude RimTalk-produced logs:
-            // - entries that are the special PlayLogEntry_RimTalkInteraction type
-            // - entries that were converted and stored in RimTalkWorldComponent
-            if (entry is PlayLogEntry_RimTalkInteraction) continue;
-            if (entry is PlayLogEntry_Interaction interaction && InteractionTextPatch.IsRimTalkInteraction(interaction)) continue;
+        var recentItems = new List<(string content, int ticksAgo)>();
 
-            int entryTicks = ticksField != null ? (int)ticksField.GetValue(entry) : -1;
-            if (entryTicks < minTicks) continue;
-
-            // Check if this entry concerns the pawn
-            var concerns = entry.GetConcerns();
-            if (!concerns.OfType<Pawn>().Contains(pawn)) continue;
-
-            // Title: interaction label if available
-            string title = entry.GetType().Name;
-            var intDefField = entry.GetType().GetField("intDef", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (intDefField != null)
+        // Process PlayLog entries (general game events)
+        var playLogEntries = Find.PlayLog?.AllEntries;
+        if (playLogEntries != null)
+        {
+            for (int i = playLogEntries.Count - 1; i >= 0; i--)
             {
-                var intDef = intDefField.GetValue(entry) as InteractionDef;
-                if (intDef != null) title = intDef.label;
-            }
+                var entry = playLogEntries[i];
+                if (entry == null) continue;
 
-            string content;
-            try
-            {
-                content = entry.ToGameStringFromPOV(pawn).StripTags();
-            }
-            catch
-            {
-                content = entry.ToString();
-            }
+                // Exclude RimTalk-produced logs
+                if (entry is PlayLogEntry_RimTalkInteraction) continue;
+                if (entry is PlayLogEntry_Interaction interaction && InteractionTextPatch.IsRimTalkInteraction(interaction)) continue;
 
-            recentItems.Add($"{title}: {content}");
+                int entryTicks = (int)ticksField.GetValue(entry);
+                int ticksAgo = currentTick - entryTicks;
+                
+                // Only include logs within 16 hours
+                if (ticksAgo < 0 || ticksAgo > sixteenHoursTicks) continue;
+
+                // Check if this entry concerns the pawn
+                var concerns = entry.GetConcerns();
+                if (!concerns.OfType<Pawn>().Contains(pawn)) continue;
+
+                // Title: interaction label if available
+                string title = entry.GetType().Name;
+                var intDefField = entry.GetType().GetField("intDef", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (intDefField != null)
+                {
+                    var intDef = intDefField.GetValue(entry) as InteractionDef;
+                    if (intDef != null) title = intDef.label;
+                }
+
+                string content;
+                try
+                {
+                    content = entry.ToGameStringFromPOV(pawn).StripTags();
+                }
+                catch
+                {
+                    content = entry.ToString();
+                }
+
+                recentItems.Add(($"{title}: {content}", ticksAgo));
+            }
+        }
+
+        // Process BattleLog entries (combat events)
+        var battleLogEntries = Find.BattleLog?.Battles;
+        if (battleLogEntries != null)
+        {
+            foreach (var battle in battleLogEntries)
+            {
+                if (battle?.Entries == null) continue;
+
+                for (int i = battle.Entries.Count - 1; i >= 0; i--)
+                {
+                    var entry = battle.Entries[i];
+                    if (entry == null) continue;
+
+                    int entryTicks = (int)ticksField.GetValue(entry);
+                    int ticksAgo = currentTick - entryTicks;
+                    
+                    // Only include logs within 16 hours
+                    if (ticksAgo < 0 || ticksAgo > sixteenHoursTicks) continue;
+
+                    // Check if this entry concerns the pawn
+                    var concerns = entry.GetConcerns();
+                    if (!concerns.OfType<Pawn>().Contains(pawn)) continue;
+
+                    string content;
+                    try
+                    {
+                        content = entry.ToGameStringFromPOV(pawn).StripTags();
+                    }
+                    catch
+                    {
+                        content = entry.ToString();
+                    }
+
+                    recentItems.Add(($"{content}", ticksAgo));
+                }
+            }
         }
 
         if (!recentItems.Any()) return null;
-        recentItems = recentItems.TakeLast(3).ToList();
+
+        // Sort by time (most recent first)
+        recentItems = recentItems.OrderBy(item => item.ticksAgo).ToList();
+
+        // If infoLevel is Normal or Short, limit to 5 most recent items
+        if (infoLevel <= PromptService.InfoLevel.Normal)
+            recentItems = recentItems.Take(5).ToList();
 
         var sb = new StringBuilder();
-        sb.Append("Actions:\n{");
-        foreach (var item in recentItems)
+        sb.Append("行为:\n{");
+        
+        for (int i = 0; i < recentItems.Count; i++)
         {
-            var str = item;
-            if (item != recentItems.Last())
-                str = "刚刚做过:" + str;
+            var item = recentItems[i];
+            string prefix;
+            
+            if (i == 0 && item.ticksAgo <= 250)
+            {
+                // Most recent log
+                prefix = "正在进行:";
+            }
+            else if (item.ticksAgo <= twoHoursTicks)
+            {
+                // Within 2 hours
+                prefix = "刚刚做过:";
+            }
             else
-                str = "正在进行:" + str;
+            {
+                // Within 16 hours
+                prefix = "早些时候:";
+            }
 
-            sb.AppendLine().Append(str);
+            sb.AppendLine().Append(prefix + item.content);
         }
+        
         sb.Append("}");
 
         return sb.ToString();

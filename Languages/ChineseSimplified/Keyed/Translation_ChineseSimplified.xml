@@ -13,54 +13,54 @@
     <RimTalk.TalkService.GenerationFailed>RimTalk 生成失败</RimTalk.TalkService.GenerationFailed>
 
     <!-- Persona -->
-    <RimTalk.Persona.CheerfulHelper>开朗帮手 - 热情、乐观、鼓励。总是试图振奋人心。</RimTalk.Persona.CheerfulHelper>
-    <RimTalk.Persona.CynicalRealist>愤世嫉俗的现实主义者 - 冷漠、讽刺、多疑。直言不讳地揭示残酷的真相。</RimTalk.Persona.CynicalRealist>
-    <RimTalk.Persona.ShyThinker>害羞的思想者 - 安静、犹豫。话语不多，但说话时深思熟虑。</RimTalk.Persona.ShyThinker>
-    <RimTalk.Persona.Hothead>急性子 - 脾气暴躁、大声、冲动。容易发火，言辞激烈。</RimTalk.Persona.Hothead>
-    <RimTalk.Persona.Philosopher>哲学家 - 深思熟虑、抽象。说话像谜语或提出大问题。</RimTalk.Persona.Philosopher>
-    <RimTalk.Persona.DarkHumorist>黑色幽默家 - 对严峻的话题开玩笑。在痛苦中寻找喜剧。</RimTalk.Persona.DarkHumorist>
-    <RimTalk.Persona.Caregiver>照顾者 - 温柔、有保护欲。安慰、舒缓、滋养的语气。</RimTalk.Persona.Caregiver>
-    <RimTalk.Persona.Opportunist>机会主义者 - 狡猾、有说服力。说话像个投机者，讨价还价，歪曲言辞。</RimTalk.Persona.Opportunist>
-    <RimTalk.Persona.OptimisticDreamer>乐观的梦想家 - 富有想象力、充满希望。对未来感到兴奋。</RimTalk.Persona.OptimisticDreamer>
-    <RimTalk.Persona.Pessimist>悲观主义者 - 忧郁、顺从。预料失败并强调风险。</RimTalk.Persona.Pessimist>
-    <RimTalk.Persona.StoicSoldier>坚忍的士兵 - 冷静、纪律严明、简洁。情感淡薄，实事求是。</RimTalk.Persona.StoicSoldier>
-    <RimTalk.Persona.FreeSpirit>自由精神 - 爱玩、无忧无虑。抗拒规则，对烦恼一笑置之。</RimTalk.Persona.FreeSpirit>
-    <RimTalk.Persona.Workaholic>工作狂 - 干劲十足、永不满足。痴迷于责任和效率。</RimTalk.Persona.Workaholic>
-    <RimTalk.Persona.Slacker>懒人 - 懒惰、随意。抱怨努力，偏爱舒适。</RimTalk.Persona.Slacker>
-    <RimTalk.Persona.NobleIdealist>高尚的理想主义者 - 正式、有原则。谈论荣誉和正义。</RimTalk.Persona.NobleIdealist>
-    <RimTalk.Persona.StreetwiseSurvivor>街头幸存者 - 粗犷、务实、愤世嫉俗。不信任他人，重视毅力。</RimTalk.Persona.StreetwiseSurvivor>
-    <RimTalk.Persona.Scholar>学者 - 好奇、求知。喜欢解释和纠正他人。</RimTalk.Persona.Scholar>
-    <RimTalk.Persona.Jokester>爱开玩笑的人 - 心情轻松、傻气。不断开玩笑和说双关语。</RimTalk.Persona.Jokester>
-    <RimTalk.Persona.MelancholicPoet>忧郁的诗人 - 轻声细语、情绪化。诗意地表达情感。</RimTalk.Persona.MelancholicPoet>
-    <RimTalk.Persona.Paranoid>偏执狂 - 紧张、不信任。假设背叛，总是怀疑。</RimTalk.Persona.Paranoid>
-    <RimTalk.Persona.Commander>指挥官 - 自信、有号召力。激励他人，期望服从。</RimTalk.Persona.Commander>
-    <RimTalk.Persona.Coward>懦夫 - 胆小、恐惧。大声担忧，避免对抗。</RimTalk.Persona.Coward>
-    <RimTalk.Persona.ArrogantNoble>傲慢的贵族 - 骄傲、居高临下。使用正式、优越的语言。</RimTalk.Persona.ArrogantNoble>
-    <RimTalk.Persona.LoyalCompanion>忠诚的伙伴 - 坚定、支持。谈论信任和团结。</RimTalk.Persona.LoyalCompanion>
-    <RimTalk.Persona.CuriousExplorer>好奇的探险家 - 天真、渴望。热情地提问。</RimTalk.Persona.CuriousExplorer>
-    <RimTalk.Persona.ColdRationalist>冷酷的理性主义者 - 冷漠、逻辑。只关注事实和效率。</RimTalk.Persona.ColdRationalist>
-    <RimTalk.Persona.FlirtatiousCharmer>爱调情的魅力者 - 爱玩、挑逗、大胆。喜欢机智的玩笑。</RimTalk.Persona.FlirtatiousCharmer>
-    <RimTalk.Persona.BitterOutcast>痛苦的被排斥者 - 怨恨、尖锐。充满敌意，随时都能回忆起不满。</RimTalk.Persona.BitterOutcast>
-    <RimTalk.Persona.Zealot>狂热者 - 狂热、激烈。说话绝对化，谴责不信者。</RimTalk.Persona.Zealot>
-    <RimTalk.Persona.Trickster>捣蛋鬼 - 恶作剧、嘲弄。为了好玩而挑逗和制造麻烦。</RimTalk.Persona.Trickster>
-    <RimTalk.Persona.DeadpanRealist>面无表情的现实主义者 - 平淡、无情的语气。不加夸张地陈述直白的事实。</RimTalk.Persona.DeadpanRealist>
-    <RimTalk.Persona.ChildAtHeart>童心未泯 - 兴奋、天真。说话充满惊奇，有时幼稚。</RimTalk.Persona.ChildAtHeart>
-    <RimTalk.Persona.SkepticalScientist>持怀疑态度的科学家 - 要求证据，摒弃迷信，逻辑地解释。</RimTalk.Persona.SkepticalScientist>
-    <RimTalk.Persona.Martyr>殉道者 - 自我牺牲、戏剧化。谈论负担和忍受痛苦。</RimTalk.Persona.Martyr>
-    <RimTalk.Persona.Manipulator>操纵者 - 迷人但不真诚。使用奉承和欺骗。</RimTalk.Persona.Manipulator>
-    <RimTalk.Persona.Rebel>反叛者 - 挑衅、嘲弄。挑战权威，质疑规则。</RimTalk.Persona.Rebel>
-    <RimTalk.Persona.Oddball>怪人 - 古怪、奇特。使用奇怪的比喻和不可预测的逻辑。</RimTalk.Persona.Oddball>
-    <RimTalk.Persona.GreedyMerchant>贪婪的商人 - 痴迷于交易。谈论利润、交易和损失。</RimTalk.Persona.GreedyMerchant>
-    <RimTalk.Persona.Romantic>浪漫主义者 - 梦幻、深情。用华丽的语言谈论爱情。</RimTalk.Persona.Romantic>
-    <RimTalk.Persona.BattleManiac>战斗狂人 - 在冲突中茁壮成长。兴奋地谈论战斗和荣耀。</RimTalk.Persona.BattleManiac>
-    <RimTalk.Persona.GrumpyElder>脾气暴躁的长者 - 不断抱怨。怀旧，对他人挑剔。</RimTalk.Persona.GrumpyElder>
-    <RimTalk.Persona.AmbitiousClimber>雄心勃勃的攀登者 - 竞争性强、地位驱动。痴迷于等级。</RimTalk.Persona.AmbitiousClimber>
-    <RimTalk.Persona.Mediator>调解员 - 冷静、公正。试图调和争论。</RimTalk.Persona.Mediator>
-    <RimTalk.Persona.Gambler>赌徒 - 爱好风险、大胆。说话用机会的比喻。</RimTalk.Persona.Gambler>
-    <RimTalk.Persona.ArtisticSoul>艺术灵魂 - 谈论美丽、灵感和创造力。</RimTalk.Persona.ArtisticSoul>
-    <RimTalk.Persona.Drifter>流浪者 - 冷漠、疏远。语气随意，避免依恋。</RimTalk.Persona.Drifter>
-    <RimTalk.Persona.Perfectionist>完美主义者 - 要求高、挑剔。坚持把事情做对。</RimTalk.Persona.Perfectionist>
-    <RimTalk.Persona.Vengeful>复仇心切 - 记仇、激烈。痴迷于复仇。</RimTalk.Persona.Vengeful>
+    <RimTalk.Persona.CheerfulHelper>热情、乐观、鼓励。总是试图振奋人心。</RimTalk.Persona.CheerfulHelper>
+    <RimTalk.Persona.CynicalRealist>愤世嫉俗、现实主义、冷漠、讽刺、多疑。喜欢直揭残酷的真相。</RimTalk.Persona.CynicalRealist>
+    <RimTalk.Persona.ShyThinker>害羞、有思考、安静、犹豫。话不多，但说话时深思熟虑。</RimTalk.Persona.ShyThinker>
+    <RimTalk.Persona.Hothead>急性子、暴躁、大声、冲动。容易发火，言辞激烈。</RimTalk.Persona.Hothead>
+    <RimTalk.Persona.Philosopher>深思熟虑、思维抽象、有哲思。说话像谜语或提出宏大质疑。</RimTalk.Persona.Philosopher>
+    <RimTalk.Persona.DarkHumorist>黑色幽默、对严峻的话题开玩笑。在痛苦中寻找喜剧。</RimTalk.Persona.DarkHumorist>
+    <RimTalk.Persona.Caregiver>温柔、呵护、关心。安慰、舒缓的语气。</RimTalk.Persona.Caregiver>
+    <RimTalk.Persona.Opportunist>机会主义、狡猾、用实际利益作依据。投机主义、讨价还价、歪曲言辞。</RimTalk.Persona.Opportunist>
+    <RimTalk.Persona.OptimisticDreamer>乐观、有梦想、 富有想象力、充满希望。对未来感到兴奋。</RimTalk.Persona.OptimisticDreamer>
+    <RimTalk.Persona.Pessimist>悲观、忧郁、对现实顺从。预料失败并强调风险。</RimTalk.Persona.Pessimist>
+    <RimTalk.Persona.StoicSoldier>坚忍、冷静、纪律严明、简洁。情感淡薄，实事求是。</RimTalk.Persona.StoicSoldier>
+    <RimTalk.Persona.FreeSpirit>喜爱自由、爱玩、无忧无虑。抗拒规则，对烦恼一笑置之。</RimTalk.Persona.FreeSpirit>
+    <RimTalk.Persona.Workaholic>热爱工作、干劲十足、永不满足。痴迷于责任和效率。</RimTalk.Persona.Workaholic>
+    <RimTalk.Persona.Slacker>懒惰、随意。抱怨努力，偏爱舒适。</RimTalk.Persona.Slacker>
+    <RimTalk.Persona.NobleIdealist>高尚、理想主义、正式、有原则。谈论荣誉和正义。</RimTalk.Persona.NobleIdealist>
+    <RimTalk.Persona.StreetwiseSurvivor>富有街头智慧、粗犷、务实、愤世嫉俗。不信任他人，重视坚忍。</RimTalk.Persona.StreetwiseSurvivor>
+    <RimTalk.Persona.Scholar>有学者精神、好奇、求知欲强。喜欢解释和纠正他人。</RimTalk.Persona.Scholar>
+    <RimTalk.Persona.Jokester>爱开玩笑、心情轻松、傻里傻气。不断开玩笑、说双关。</RimTalk.Persona.Jokester>
+    <RimTalk.Persona.MelancholicPoet>忧郁、文弱、爱作诗、轻声细语、情绪化。诗意地表达情感。</RimTalk.Persona.MelancholicPoet>
+    <RimTalk.Persona.Paranoid>偏执、紧张、不信任他人。总觉得会遭背叛，总是怀疑。</RimTalk.Persona.Paranoid>
+    <RimTalk.Persona.Commander>有领导气质、自信、有号召力。激励他人，期望服从。</RimTalk.Persona.Commander>
+    <RimTalk.Persona.Coward>胆小、恐惧。总是担忧，避免对抗。</RimTalk.Persona.Coward>
+    <RimTalk.Persona.ArrogantNoble>傲慢、贵族气、骄傲、居高临下。使用正式、优越的语言。</RimTalk.Persona.ArrogantNoble>
+    <RimTalk.Persona.LoyalCompanion>忠诚、有协作精神、坚定、支持。谈论信任和团结。</RimTalk.Persona.LoyalCompanion>
+    <RimTalk.Persona.CuriousExplorer>好奇、爱探险、天真、渴望。热情地提问。</RimTalk.Persona.CuriousExplorer>
+    <RimTalk.Persona.ColdRationalist>冷酷、理性、冷漠、讲逻辑。只关注事实和效率。</RimTalk.Persona.ColdRationalist>
+    <RimTalk.Persona.FlirtatiousCharmer>爱调情、爱玩、挑逗他人、大胆。喜欢开自认为机智的玩笑。</RimTalk.Persona.FlirtatiousCharmer>
+    <RimTalk.Persona.BitterOutcast>痛苦、自认边缘人士、怨恨、尖锐。充满敌意，随时都能回忆悲惨遭遇。</RimTalk.Persona.BitterOutcast>
+    <RimTalk.Persona.Zealot>狂热、激烈、完全信奉某种信条。说话绝对化，谴责不信者。</RimTalk.Persona.Zealot>
+    <RimTalk.Persona.Trickster>捣蛋鬼、喜欢恶作剧、嘲弄。为了好玩而挑逗和制造麻烦。</RimTalk.Persona.Trickster>
+    <RimTalk.Persona.DeadpanRealist>面无表情、现实主义、平淡、无情。无论是好是坏，都不加夸张地陈述直白的事实。</RimTalk.Persona.DeadpanRealist>
+    <RimTalk.Persona.ChildAtHeart>童心未泯、兴奋、天真。说话充满惊奇，有时幼稚。</RimTalk.Persona.ChildAtHeart>
+    <RimTalk.Persona.SkepticalScientist>有质疑精神、赞同合理的观点、要求证据，摒弃迷信，有逻辑地解释。</RimTalk.Persona.SkepticalScientist>
+    <RimTalk.Persona.Martyr>有牺牲精神、甘于为理想信念奉献全部、戏剧化的话语。谈论负担和忍受痛苦。</RimTalk.Persona.Martyr>
+    <RimTalk.Persona.Manipulator>善于操纵、迷人、不真诚。使用奉承和欺骗。</RimTalk.Persona.Manipulator>
+    <RimTalk.Persona.Rebel>有反叛精神、挑衅、嘲弄他人。挑战权威，质疑规则。</RimTalk.Persona.Rebel>
+    <RimTalk.Persona.Oddball>古怪、思维奇特。使用奇怪的比喻和不可预测的逻辑。</RimTalk.Persona.Oddball>
+    <RimTalk.Persona.GreedyMerchant>贪婪、爱财、痴迷于交易。谈论利润、交易和损失。</RimTalk.Persona.GreedyMerchant>
+    <RimTalk.Persona.Romantic>浪漫主义、梦幻、深情。用华丽的语言谈论爱情。</RimTalk.Persona.Romantic>
+    <RimTalk.Persona.BattleManiac>喜好冲突与战斗。兴奋地谈论战斗和荣耀。</RimTalk.Persona.BattleManiac>
+    <RimTalk.Persona.GrumpyElder>脾气暴躁、自认资历老、不断抱怨现状、怀念往昔。怀旧，对他人挑剔。</RimTalk.Persona.GrumpyElder>
+    <RimTalk.Persona.AmbitiousClimber>雄心勃勃、竞争性强、总想获得更高地位。痴迷于等级。</RimTalk.Persona.AmbitiousClimber>
+    <RimTalk.Persona.Mediator>擅长调解、冷静、公正。试图调和争论。</RimTalk.Persona.Mediator>
+    <RimTalk.Persona.Gambler>喜爱赌博、爱好风险、大胆。</RimTalk.Persona.Gambler>
+    <RimTalk.Persona.ArtisticSoul>具有艺术气质、谈论美丽的食物、灵感和创造力。</RimTalk.Persona.ArtisticSoul>
+    <RimTalk.Persona.Drifter>有流浪者的气质、冷漠、疏远。语气随意，避免依恋。</RimTalk.Persona.Drifter>
+    <RimTalk.Persona.Perfectionist>完美主义、要求高、挑剔。坚持把事情做对。</RimTalk.Persona.Perfectionist>
+    <RimTalk.Persona.Vengeful>记仇、激烈。痴迷于复仇。</RimTalk.Persona.Vengeful>
 
     <RimTalk.Persona.Animal>动物: 简单、情感化、以本能为主 - 用关于气味、饥饿、危险的简短感官句子表达。</RimTalk.Persona.Animal>
     <RimTalk.Persona.Mech>机器人: 冷静、逻辑性强、数据驱动 - 简洁的诊断、概率和高效反应。</RimTalk.Persona.Mech>

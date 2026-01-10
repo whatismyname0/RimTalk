@@ -29,12 +29,12 @@ public static class Constant
          """;
 
     private const string JsonInstruction = """
-                                           Output JSONL.
-                                           Required keys: "name", "text", "thinking".
+                                           以JSON格式输出.
+                                           每个JSON对象必须包含以下三个string字段: "name", "text", "thinking".
                                            """;
     
     private const string SocialInstruction = """
-                                           Optional keys (Include only if social interaction occurs):
+                                           以下两个是可选string字段 (仅在发言有社交效果时包含):
                                            "act": Insult, Slight, Chat, Kind
                                            "target": targetName
                                            """;

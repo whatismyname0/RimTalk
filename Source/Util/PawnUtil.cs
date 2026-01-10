@@ -84,8 +84,8 @@ public static class PawnUtil
         if (pawn.IsEnemy())
         {
             if (pawn.GetMapRole() == MapRole.Invading)
-                return includeFaction && pawn.Faction != null ? $"Enemy Group({pawn.Faction.Name})" : "Enemy";
-            return includeFaction && pawn.Faction != null ? $"Enemy Defender({pawn.Faction.Name})" : "Enemy Defender";
+                return "Enemy Invader";
+            return "Enemy Defender";
         }
 
         if (pawn.IsVisitor())
@@ -93,8 +93,6 @@ public static class PawnUtil
             StringBuilder sb = new StringBuilder();
 
             sb.Append("Visitor");
-            if (includeFaction && pawn.Faction != null)
-                sb.Append($" Group({pawn.Faction.Name})");
             sb.Append($"({pawn.GetLord()?.LordJob?.GetReport(pawn) ?? ""})");
 
             return sb.ToString();
@@ -452,7 +450,7 @@ public static class PawnUtil
             && !Near(pawn.CurJob.targetC)
             && !MovementJobPatterns.Any(p => pawn.CurJob.def.defName.IndexOf(p, StringComparison.OrdinalIgnoreCase) >= 0)) 
         {
-            activity = $"(traveling to) {activity}";
+            activity = $"正准备去做: {activity}";
         }
 
         return activity;

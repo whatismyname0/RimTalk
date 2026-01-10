@@ -13,7 +13,8 @@ public enum NearbyKind
     Item,
     Plant,
     Animal,
-    Filth
+    Filth,
+    Corpse
 }
 
 public struct NearbyAgg
@@ -54,7 +55,7 @@ public static class ContextHelper
             return $"{pawn.LabelShort}({pawn.ageTracker.AgeBiologicalYears}/{pawn.def.LabelCap})";
 
         var race = ModsConfig.BiotechActive && pawn.genes?.Xenotype != null
-            ? pawn.genes.XenotypeLabel
+            ? $"{pawn.def.LabelCap.RawText} - {pawn.genes.XenotypeLabel}"
             : pawn.def.LabelCap.RawText;
 
         return $"{pawn.LabelShort}:\n{{\n   Age:{pawn.ageTracker.AgeBiologicalYears},\n Gender:{pawn.gender.GetLabel()},\n  Role:{pawn.GetRole(true)},\n    Race:{race}\n}}";
@@ -146,9 +147,9 @@ public static class ContextHelper
     /// </summary>
     public static List<NearbyAgg> CollectNearbyContext(
         Pawn pawn,
-        int distance = 5,
+        int distance = 6,
         int maxPerKind = 12,
-        int maxCellsToScan = 18,
+        int maxCellsToScan = 25,
         int maxThingsTotal = 200,
         int maxItemThings = 120)
     {
@@ -166,6 +167,38 @@ public static class ContextHelper
         var aggs = new Dictionary<string, NearbyAgg>();
         var seenBuildingIds = new HashSet<int>();
 
+        // PRIORITY PASS: Collect all corpses first (no limits)
+        foreach (var cell in cells)
+        {
+            var thingsHere = cell.GetThingList(map);
+            if (thingsHere == null || thingsHere.Count == 0)
+                continue;
+
+            for (int i = 0; i < thingsHere.Count; i++)
+            {
+                var thing = thingsHere[i];
+                if (thing?.def == null) continue;
+                if (thing.DestroyedOrNull()) continue;
+
+                // Skip hidden defs (player undiscovered / codex-hidden).
+                if (Find.HiddenItemsManager != null && Find.HiddenItemsManager.Hidden(thing.def))
+                    continue;
+
+                // Humanlike corpses - priority collection
+                if (thing is Corpse corpse && corpse.InnerPawn?.RaceProps?.Humanlike == true)
+                {
+                    var innerPawn = corpse.InnerPawn;
+                    var race = innerPawn.def.LabelCap.RawText;
+                    if (ModsConfig.BiotechActive && innerPawn.genes?.Xenotype != null)
+                        race = $"{race} - {innerPawn.genes.XenotypeLabel}";
+                    var faction = innerPawn.Faction?.Name ?? "NoFaction".Translate();
+                    var corpseLabel = $"{{name: \"{innerPawn.LabelShort}\", gender: {innerPawn.gender.GetLabel()}, race: {race}, age: {innerPawn.ageTracker.AgeBiologicalYears}, faction: {faction}}}";
+                    AddAgg(aggs, corpse, NearbyKind.Corpse, corpseLabel);
+                }
+            }
+        }
+
+        // SECOND PASS: Collect other things with limits
         int processedTotal = 0;
         int processedItems = 0;
 
@@ -187,6 +220,10 @@ public static class ContextHelper
 
                 // Skip hidden defs (player undiscovered / codex-hidden).
                 if (Find.HiddenItemsManager != null && Find.HiddenItemsManager.Hidden(thing.def))
+                    continue;
+
+                // Skip corpses (already collected in priority pass)
+                if (thing is Corpse)
                     continue;
 
                 // Hard cap on number of item-things processed. This is the main safeguard against
@@ -256,16 +293,19 @@ DONE:
     /// IMPORTANT: aggregation key must be stable; do NOT use Thing.LabelCap/LabelNoCount as key,
     /// because many items (books/art) have dynamic labels (title/quality/hp) and will not dedupe.
     /// </summary>
-    private static void AddAgg(Dictionary<string, NearbyAgg> aggs, Thing thing, NearbyKind kind)
+    private static void AddAgg(Dictionary<string, NearbyAgg> aggs, Thing thing, NearbyKind kind, string customLabel = null)
     {
         var def = thing.def;
 
         // Stable display label: for context, prefer def.LabelCap instead of Thing.LabelCap
         // to avoid embedding dynamic info like book titles, author names, quality, hitpoints, etc.
-        var label = def.LabelCap;
+        // For corpses and other special cases, allow custom labels with detailed info.
+        var label = customLabel ?? def.LabelCap;
 
-        // Stable key: kind + defName (optionally add stuff if you want to distinguish materials).
-        var key = $"{kind}|{def.defName}";
+        // For corpses with custom labels, use the custom label as part of the key to avoid aggregation
+        var key = customLabel != null && kind == NearbyKind.Corpse
+            ? $"{kind}|{thing.thingIDNumber}"
+            : $"{kind}|{def.defName}";
 
         if (!aggs.TryGetValue(key, out var agg))
         {
@@ -310,7 +350,7 @@ DONE:
                 return a.Count > 1 ? $"{a.Label} ×{a.Count}" : a.Label;
             });
 
-            return $"{title}: {string.Join(", ", parts)}";
+            return $"{title}: [{string.Join(", ", parts)}]";
         }
 
         var sections = new List<string>
@@ -319,6 +359,7 @@ DONE:
             FmtGroup(NearbyKind.Item, "Items"),
             FmtGroup(NearbyKind.Plant, "Plants"),
             FmtGroup(NearbyKind.Animal, "Animals"),
+            FmtGroup(NearbyKind.Corpse, "Corpses"),
             FmtGroup(NearbyKind.Filth, "Filth"),
         }.Where(s => !string.IsNullOrWhiteSpace(s));
 
@@ -329,7 +370,7 @@ DONE:
         Pawn pawn,
         int distance = 5,
         int maxPerKind = 12,
-        int maxCellsToScan = 18,
+        int maxCellsToScan = 25,
         int maxThingsTotal = 200,
         int maxItemThings = 120)
     {
