@@ -21,7 +21,7 @@ public static class PromptService
     public static string BuildContext(List<Pawn> pawns)
     {
         var context = new StringBuilder();
-        
+    
         for (int i = 0; i < pawns.Count; i++)
         {
             var pawn = pawns[i];
@@ -29,6 +29,7 @@ public static class PromptService
             InfoLevel infoLevel = Settings.Get().Context.EnableContextOptimization 
                                   || i != 0 ? InfoLevel.Normal : InfoLevel.Full;
             var pawnContext = CreatePawnContext(pawn, infoLevel);
+            pawnContext = CommonUtil.StripFormattingTags(pawnContext);
 
             Cache.Get(pawn).Context = pawnContext;
             context.AppendLine($"[P{i + 1}]").AppendLine(pawnContext);

@@ -259,7 +259,7 @@ public static class ContextBuilder
                 var t = kvp.Key;
                 var summedOffset = kvp.Value;
                 var summedInt = (int)Math.Round(summedOffset);
-                return new { thought = ContextHelper.Sanitize(t.LabelCap), impact = summedInt };
+                return new { thought = CommonUtil.Sanitize(t.LabelCap), impact = summedInt };
             }).ToList();
 
         if (thoughtsList.Any())
