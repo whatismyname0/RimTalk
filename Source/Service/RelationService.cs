@@ -11,6 +11,8 @@ public static class RelationsService
 {
     private const float FriendOpinionThreshold = 20f;
     private const float RivalOpinionThreshold = -20f;
+    private const float LoveOpinionThreshold = 60f;
+    private const float FuckOpinionThreshold = -60f;
 
     public static string GetRelationsString(Pawn pawn)
     {
@@ -31,33 +33,49 @@ public static class RelationsService
             try
             {
                 float opinionValue = pawn.relations.OpinionOf(otherPawn);
-                string label = null;
+                var labels = new System.Collections.Generic.List<string>();
 
-                // Check if there's an important relation (not acquaintance)
-                PawnRelationDef mostImportantRelation = pawn.GetMostImportantRelation(otherPawn);
-                if (mostImportantRelation != null && mostImportantRelation.defName != "Acquaintance")
+                // Get all direct relations (not just the most important one)
+                var directRelations = pawn.relations.DirectRelations
+                    .Where(r => r.otherPawn == otherPawn && r.def != null && r.def.defName != "Acquaintance")
+                    .Select(r => r.def.GetGenderSpecificLabelCap(otherPawn))
+                    .ToList();
+                
+                if (directRelations.Any())
                 {
-                    label = mostImportantRelation.GetGenderSpecificLabelCap(otherPawn);
+                    labels.AddRange(directRelations);
                 }
                 
-                // If no important relation, check friend/rival based on opinion
-                if (string.IsNullOrEmpty(label))
+                // Add opinion-based label
+                string opinion = "";
+                if (opinionValue <= FuckOpinionThreshold)
                 {
-                    if (opinionValue >= FriendOpinionThreshold)
-                    {
-                        label = "Friend".Translate();
-                    }
-                    else if (opinionValue <= RivalOpinionThreshold)
-                    {
-                        label = "Rival".Translate();
-                    }
+                    opinion = "仇恨";
+                }
+                else if (opinionValue >= LoveOpinionThreshold)
+                {
+                    opinion = "喜爱";
+                }
+                else if (opinionValue >= FriendOpinionThreshold)
+                {
+                    opinion = "欣赏";
+                }
+                else if (opinionValue <= RivalOpinionThreshold)
+                {
+                    opinion = "厌恶";
                 }
 
-                if (!string.IsNullOrEmpty(label))
+                if (!string.IsNullOrEmpty(opinion))
+                {
+                    labels.Add(opinion);
+                }
+
+                if (labels.Any())
                 {
                     string pawnName = otherPawn.LabelShort;
                     string deadMarker = otherPawn.Dead ? " (" + "Dead".Translate() + ")" : "";
-                    relationsSb.Append($"{pawnName}{deadMarker}: {label}, ");
+                    string combinedLabels = string.Join(", ", labels);
+                    relationsSb.Append($"{pawnName}{deadMarker}: [{combinedLabels}], ");
                 }
             }
             catch (Exception ex)
@@ -70,7 +88,7 @@ public static class RelationsService
         {
             // Remove the trailing comma and space
             relationsSb.Length -= 2;
-            return $"Relations: {{ {relationsSb} }}";
+            return $"对他人的看法或他人相对于自己的身份: {{ {relationsSb} }}";
         }
 
         return "";

@@ -58,7 +58,7 @@ public static class ContextHelper
             ? $"{pawn.def.LabelCap.RawText} - {pawn.genes.XenotypeLabel}"
             : pawn.def.LabelCap.RawText;
 
-        return $"{pawn.LabelShort}:\n{{\n   Age:{pawn.ageTracker.AgeBiologicalYears},\n Gender:{pawn.gender.GetLabel()},\n  Role:{pawn.GetRole(true)},\n    Race:{race}\n}}";
+        return $"{pawn.LabelShort}:\n{{\n   Age:{pawn.ageTracker.AgeBiologicalYears},\n Gender:{pawn.gender.GetLabel()},\n  Role:{pawn.GetRole(true)},\n    Race:{race},\n  Now doing:{PawnUtil.GetPawnActivity(pawn, null, true)}\n}}";
     }
 
     public static bool IsWall(Thing thing)
@@ -149,7 +149,7 @@ public static class ContextHelper
         Pawn pawn,
         int distance = 6,
         int maxPerKind = 12,
-        int maxCellsToScan = 25,
+        int maxCellsToScan = 120,
         int maxThingsTotal = 200,
         int maxItemThings = 120)
     {
@@ -184,16 +184,27 @@ public static class ContextHelper
                 if (Find.HiddenItemsManager != null && Find.HiddenItemsManager.Hidden(thing.def))
                     continue;
 
-                // Humanlike corpses - priority collection
-                if (thing is Corpse corpse && corpse.InnerPawn?.RaceProps?.Humanlike == true)
+                // Corpses - priority collection (humanlike and animals)
+                if (thing is Corpse corpse && corpse.InnerPawn != null)
                 {
                     var innerPawn = corpse.InnerPawn;
-                    var race = innerPawn.def.LabelCap.RawText;
-                    if (ModsConfig.BiotechActive && innerPawn.genes?.Xenotype != null)
-                        race = $"{race} - {innerPawn.genes.XenotypeLabel}";
-                    var faction = innerPawn.Faction?.Name ?? "NoFaction".Translate();
-                    var corpseLabel = $"{{name: \"{innerPawn.LabelShort}\", gender: {innerPawn.gender.GetLabel()}, race: {race}, age: {innerPawn.ageTracker.AgeBiologicalYears}, faction: {faction}}}";
-                    AddAgg(aggs, corpse, NearbyKind.Corpse, corpseLabel);
+                    
+                    // Humanlike corpses with detailed info
+                    if (innerPawn.RaceProps?.Humanlike == true)
+                    {
+                        var race = innerPawn.def.LabelCap.RawText;
+                        if (ModsConfig.BiotechActive && innerPawn.genes?.Xenotype != null)
+                            race = $"{race} - {innerPawn.genes.XenotypeLabel}";
+                        var faction = innerPawn.Faction?.Name ?? "NoFaction".Translate();
+                        var corpseLabel = $"{{name: \"{innerPawn.LabelShort}\", gender: {innerPawn.gender.GetLabel()}, race: {race}, age: {innerPawn.ageTracker.AgeBiologicalYears}, faction: {faction}}}";
+                        AddAgg(aggs, corpse, NearbyKind.Corpse, corpseLabel);
+                    }
+                    // Animal corpses - simpler format
+                    else if (innerPawn.RaceProps?.Animal == true)
+                    {
+                        var corpseLabel = $"{innerPawn.LabelShort} ({innerPawn.def.LabelCap})";
+                        AddAgg(aggs, corpse, NearbyKind.Corpse, corpseLabel);
+                    }
                 }
             }
         }
@@ -368,9 +379,9 @@ DONE:
 
     public static string CollectNearbyContextText(
         Pawn pawn,
-        int distance = 5,
+        int distance = 6,
         int maxPerKind = 12,
-        int maxCellsToScan = 25,
+        int maxCellsToScan = 120,
         int maxThingsTotal = 200,
         int maxItemThings = 120)
     {

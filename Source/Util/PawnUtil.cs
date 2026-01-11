@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using RimTalk.Data;
+using RimTalk.Service;
 using RimWorld;
 using RimWorld.Planet;
 using Verse;
@@ -136,17 +137,16 @@ public static class PawnUtil
 
         // 2. Main Pawn Line
         string pawnLabel = GetPawnLabel(pawn, relevantPawns, useOptimization);
-        string pawnActivity = GetPawnActivity(pawn, relevantPawns, useOptimization);
 
         // Check if main pawn is in danger (Panic/Combat/Health)
         if (pawn.IsInDanger())
         {
-            lines.Add($"{pawnLabel} {pawnActivity} [IN DANGER]");
+            lines.Add($"{pawnLabel}[IN DANGER]");
             isInDanger = true;
         }
         else
         {
-            lines.Add($"{pawnLabel} {pawnActivity}");
+            lines.Add($"{pawnLabel}");
         }
 
         // 3. Combined Nearby List
@@ -196,7 +196,6 @@ public static class PawnUtil
             var pawnState = Cache.Get(p);
             if (pawnState != null)
             {
-                string activity = GetPawnActivity(p, relevantPawns, useOptimization);
                 string talkRequestStr = "";
                 var talkRequest = pawnState.GetNextTalkRequest();
                 if (talkRequest != null)
@@ -204,7 +203,7 @@ public static class PawnUtil
                     pawnState.MarkRequestSpoken(talkRequest);
                     talkRequestStr = $" - {talkRequest.Prompt}";
                 }
-                entry = $"{label} {activity.StripTags()}{extraStatus}{talkRequestStr}";
+                entry = $"{label} {extraStatus}{talkRequestStr}";
             }
             else
             {
@@ -250,12 +249,13 @@ public static class PawnUtil
             : pawn.LabelShort;
     }
 
-    private static string GetPawnActivity(Pawn pawn, HashSet<Pawn> relevantPawns, bool useOptimization)
+    public static string GetPawnActivity(Pawn pawn, HashSet<Pawn> relevantPawns, bool useOptimization)
     {
         string activity = pawn.GetActivity();
+        string activity2 = ContextBuilder.GetMostRecentLogContext(pawn);
 
         // if (useOptimization || string.IsNullOrEmpty(activity))
-            return activity;
+            return $"[{activity}{(string.IsNullOrEmpty(activity2)?"":(", " + activity2))}]";
 
         // return DecorateText(activity, relevantPawns);
     }

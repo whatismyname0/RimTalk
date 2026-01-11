@@ -171,7 +171,13 @@ public static class TalkService
             // Skip this talk if its parent was ignored or the pawn is currently unable to speak.
             if (TalkHistory.IsTalkIgnored(talk.ParentTalkId) || !pawnState.CanDisplayTalk())
             {
-                pawnState.IgnoreTalkResponse();
+                // Remove the talk from queue and mark as ignored
+                pawnState.TalkResponses.Remove(talk);
+                TalkHistory.AddIgnored(talk.Id);
+                var apiLog = ApiHistory.GetApiLog(talk.Id);
+                if (apiLog != null)
+                    apiLog.SpokenTick = GenTicks.TicksGame;
+                Overlay.NotifyLogUpdated();
                 continue;
             }
 
@@ -184,7 +190,6 @@ public static class TalkService
             if (pawn.IsInDanger())
             {
                 replyInterval = 2;
-                pawnState.IgnoreAllTalkResponses([TalkType.Urgent, TalkType.User]);
             }
 
             // Enforce a delay for replies to make conversations feel more natural.
@@ -226,7 +231,7 @@ public static class TalkService
     {
         // Failsafe check
         if (pawnState.TalkResponses.Empty()) 
-            return new TalkResponse(TalkType.Other, null!, "", "");
+            return new TalkResponse(TalkType.Other, null!, "");
         
         var talkResponse = pawnState.TalkResponses.First();
         pawnState.TalkResponses.Remove(talkResponse);

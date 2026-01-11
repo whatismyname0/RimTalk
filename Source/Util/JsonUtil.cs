@@ -117,7 +117,7 @@ public static class JsonUtil
             .Replace("＂","\"")
             .Trim();
 
-        List<string> keys = ["name", "thinking", "text", "act", "target"];
+        List<string> keys = ["name", "text", "act", "target"];
         foreach (var key in keys)
         {
             sanitized = Regex.Replace(

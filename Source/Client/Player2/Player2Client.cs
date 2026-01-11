@@ -189,7 +189,7 @@ public class Player2Client : IAIClient
 
         string responseText = downloadHandler.text;
 
-        if (webRequest.isNetworkError || webRequest.isHttpError)
+        if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
         {
             string errorMsg = ErrorUtil.ExtractErrorMessage(responseText) ?? webRequest.error;
             Logger.Error($"Player2 failed: {webRequest.responseCode} - {errorMsg}");

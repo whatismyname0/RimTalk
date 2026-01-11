@@ -7,7 +7,7 @@ using Verse;
 namespace RimTalk.Data;
 
 [DataContract]
-public class TalkResponse(TalkType talkType, string name, string text, string thinking) : IJsonData
+public class TalkResponse(TalkType talkType, string name, string text) : IJsonData
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -18,9 +18,6 @@ public class TalkResponse(TalkType talkType, string name, string text, string th
 
     [DataMember(Name = "text")] 
     public string Text { get; set; } = text;
-
-    [DataMember(Name = "thinking")] 
-    public string Thinking { get; set; } = thinking;
 
     [DataMember(Name = "act", EmitDefaultValue = false)]
     public string? InteractionRaw { get; set; }
@@ -37,12 +34,7 @@ public class TalkResponse(TalkType talkType, string name, string text, string th
     
     public string GetText()
     {
-        return (Thinking.Length==0)?"":((Thinking[0]=='('&&Thinking[Thinking.Length - 1]==')')?"":"(")+Thinking+((Thinking[0]=='('&&Thinking[Thinking.Length - 1]==')')?"\n":")\n")+Text;
-    }
-    
-    public string GetThinking()
-    {
-        return Thinking;
+        return Text;
     }
     
     public InteractionType GetInteractionType()

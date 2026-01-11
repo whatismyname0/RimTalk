@@ -30,7 +30,7 @@ public static class Constant
 
     private const string JsonInstruction = """
                                            以JSON格式输出.
-                                           每个JSON对象必须包含以下三个string字段: "name", "text", "thinking".
+                                           每个JSON对象必须包含以下2个string字段: "name", "text".
                                            """;
     
     private const string SocialInstruction = """

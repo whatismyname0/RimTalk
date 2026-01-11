@@ -431,7 +431,7 @@ public static class ContextBuilder
         // Time windows: 2 hours and 16 hours (2500 ticks per hour)
         int twoHoursTicks = 2500 * 2;
         int sixteenHoursTicks = 2500 * 16;
-        int currentTick = GenTicks.TicksGame;
+        int currentTick = Find.TickManager.TicksAbs;
 
         var ticksField = typeof(LogEntry).GetField("ticksAbs", BindingFlags.NonPublic | BindingFlags.Instance);
         if (ticksField == null)
@@ -446,9 +446,8 @@ public static class ContextBuilder
         var playLogEntries = Find.PlayLog?.AllEntries;
         if (playLogEntries != null)
         {
-            for (int i = playLogEntries.Count - 1; i >= 0; i--)
+            foreach (var entry in playLogEntries)
             {
-                var entry = playLogEntries[i];
                 if (entry == null) continue;
 
                 // Exclude RimTalk-produced logs
@@ -496,9 +495,8 @@ public static class ContextBuilder
             {
                 if (battle?.Entries == null) continue;
 
-                for (int i = battle.Entries.Count - 1; i >= 0; i--)
+                foreach (var entry in battle.Entries)
                 {
-                    var entry = battle.Entries[i];
                     if (entry == null) continue;
 
                     int entryTicks = (int)ticksField.GetValue(entry);
@@ -529,21 +527,23 @@ public static class ContextBuilder
         if (!recentItems.Any()) return null;
 
         // Sort by time (most recent first)
-        recentItems = recentItems.OrderBy(item => item.ticksAgo).ToList();
+        recentItems = recentItems.OrderByDescending(item => item.ticksAgo).ToList();
 
         // If infoLevel is Normal or Short, limit to 5 most recent items
         if (infoLevel <= PromptService.InfoLevel.Normal)
-            recentItems = recentItems.Take(5).ToList();
+            recentItems = recentItems.TakeLast(5).ToList();
+        else
+            recentItems = recentItems.TakeLast(20).ToList();
 
         var sb = new StringBuilder();
-        sb.Append("行为:\n{");
+        sb.Append("行为日志(时间顺序,从远到近):\n{");
         
         for (int i = 0; i < recentItems.Count; i++)
         {
             var item = recentItems[i];
             string prefix;
             
-            if (i == 0 && item.ticksAgo <= 250)
+            if (i == recentItems.Count-1 && item.ticksAgo <= 500)
             {
                 // Most recent log
                 prefix = "正在进行:";
@@ -565,5 +565,110 @@ public static class ContextBuilder
         sb.Append("}");
 
         return sb.ToString();
+    }
+
+    public static string GetMostRecentLogContext(Pawn pawn)
+    {
+        var contextSettings = Settings.Get().Context;
+        if (!contextSettings.IncludeRecentLogs) return null;
+
+        int TickThreshold = 500;
+        int currentTick = Find.TickManager.TicksAbs;
+
+        var ticksField = typeof(LogEntry).GetField("ticksAbs", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (ticksField == null)
+        {
+            Log.Warning("[RimTalk] Failed to reflect ticksAbs field from LogEntry");
+            return null;
+        }
+
+        Tuple<string, int> recentItem = null;
+
+        // Process PlayLog entries (general game events)
+        var playLogEntries = Find.PlayLog?.AllEntries;
+        if (playLogEntries != null)
+        {
+            foreach (var entry in playLogEntries)
+            {
+                if (entry == null) continue;
+
+                // Exclude RimTalk-produced logs
+                if (entry is PlayLogEntry_RimTalkInteraction) continue;
+                if (entry is PlayLogEntry_Interaction interaction && InteractionTextPatch.IsRimTalkInteraction(interaction)) continue;
+
+                int entryTicks = (int)ticksField.GetValue(entry);
+                int ticksAgo = currentTick - entryTicks;
+                
+                // Only include logs within 16 hours
+                if (ticksAgo < 0 || ticksAgo > TickThreshold) continue;
+                if (recentItem != null && ticksAgo > recentItem.Item2) continue;
+
+                // Check if this entry concerns the pawn
+                var concerns = entry.GetConcerns();
+                if (!concerns.OfType<Pawn>().Contains(pawn)) continue;
+
+                // Title: interaction label if available
+                string title = entry.GetType().Name;
+                var intDefField = entry.GetType().GetField("intDef", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (intDefField != null)
+                {
+                    var intDef = intDefField.GetValue(entry) as InteractionDef;
+                    if (intDef != null) title = intDef.label;
+                }
+
+                string content;
+                try
+                {
+                    content = entry.ToGameStringFromPOV(pawn).StripTags();
+                }
+                catch
+                {
+                    content = entry.ToString();
+                }
+
+                recentItem = Tuple.Create($"{title}: {content}", ticksAgo);
+            }
+        }
+
+        // Process BattleLog entries (combat events)
+        var battleLogEntries = Find.BattleLog?.Battles;
+        if (battleLogEntries != null)
+        {
+            foreach (var battle in battleLogEntries)
+            {
+                if (battle?.Entries == null) continue;
+
+                foreach (var entry in battle.Entries)
+                {
+                    if (entry == null) continue;
+
+                    int entryTicks = (int)ticksField.GetValue(entry);
+                    int ticksAgo = currentTick - entryTicks;
+                    
+                    if (ticksAgo < 0 || ticksAgo > TickThreshold) continue;
+                    if (recentItem != null && ticksAgo > recentItem.Item2) continue;
+
+                    // Check if this entry concerns the pawn
+                    var concerns = entry.GetConcerns();
+                    if (!concerns.OfType<Pawn>().Contains(pawn)) continue;
+
+                    string content;
+                    try
+                    {
+                        content = entry.ToGameStringFromPOV(pawn).StripTags();
+                    }
+                    catch
+                    {
+                        content = entry.ToString();
+                    }
+
+                    recentItem = Tuple.Create($"{content}", ticksAgo);
+                }
+            }
+        }
+
+        if (recentItem == null) return "";
+
+        return recentItem.Item1;
     }
 }

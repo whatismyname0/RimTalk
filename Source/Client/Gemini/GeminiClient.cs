@@ -79,7 +79,6 @@ public class GeminiClient : IAIClient
         float inactivityTimer = 0f;
         ulong lastBytes = 0;
         const float connectTimeout = 30f;
-        const float readTimeout = 30f;
 
         while (!asyncOp.isDone)
         {
