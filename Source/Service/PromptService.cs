@@ -69,7 +69,7 @@ public static class PromptService
         AppendIfNotEmpty(sb, ContextBuilder.GetBackstoryContext(pawn, infoLevel));
 
         // Stop here for invaders and visitors
-        if (pawn.IsEnemy() || pawn.IsVisitor())
+        if ((pawn.IsEnemy() || pawn.IsVisitor()) && !pawn.IsQuestLodger())
             return sb.ToString();
             
         AppendIfNotEmpty(sb, ContextBuilder.GetTraitsContext(pawn, infoLevel));

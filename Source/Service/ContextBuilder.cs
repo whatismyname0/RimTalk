@@ -16,7 +16,8 @@ namespace RimTalk.Service;
 
 public static class ContextBuilder
 {
-    private static readonly MethodInfo VisibleHediffsMethod = AccessTools.Method(typeof(HealthCardUtility), "VisibleHediffs");
+    private static readonly MethodInfo VisibleHediffsMethod =
+        AccessTools.Method(typeof(HealthCardUtility), "VisibleHediffs");
 
     public static string GetRaceContext(Pawn pawn, PromptService.InfoLevel infoLevel)
     {
@@ -31,7 +32,8 @@ public static class ContextBuilder
     public static string GetNotableGenesContext(Pawn pawn, PromptService.InfoLevel infoLevel)
     {
         var contextSettings = Settings.Get().Context;
-        if (!contextSettings.IncludeNotableGenes || !ModsConfig.BiotechActive || pawn.genes?.GenesListForReading == null)
+        if (!contextSettings.IncludeNotableGenes || !ModsConfig.BiotechActive ||
+            pawn.genes?.GenesListForReading == null)
             return null;
 
         var notableGenes = pawn.genes.GenesListForReading
@@ -64,7 +66,7 @@ public static class ContextBuilder
 
         var sb = new StringBuilder();
         var ideo = pawn.ideo.Ideo;
-        
+
         // For Short level, skip ideology name and only show top 3 memes
         if (infoLevel == PromptService.InfoLevel.Short)
         {
@@ -108,7 +110,7 @@ public static class ContextBuilder
             return null;
 
         var sb = new StringBuilder();
-        
+
         // For Short level, only include childhood title
         if (infoLevel == PromptService.InfoLevel.Short)
         {
@@ -158,6 +160,7 @@ public static class ContextBuilder
         {
             return $"人格特点: [{string.Join(",", traits)}]";
         }
+
         return null;
     }
 
@@ -183,7 +186,7 @@ public static class ContextBuilder
             return null;
 
         var hediffs = (IEnumerable<Hediff>)VisibleHediffsMethod.Invoke(null, [pawn, false]);
-        
+
         // For Short level, only show top 3 most recent/severe hediffs
         if (infoLevel == PromptService.InfoLevel.Short)
         {
@@ -234,6 +237,7 @@ public static class ContextBuilder
                     : $"心情: {m.MoodString} ({(int)(m.CurLevelPercentage * 100)}%)";
             return mood;
         }
+
         return null;
     }
 
@@ -321,7 +325,7 @@ public static class ContextBuilder
 
     public static void BuildDialogueType(StringBuilder sb, TalkRequest talkRequest, List<Pawn> pawns, string shortName, Pawn mainPawn)
     {
-        if (talkRequest.TalkType == TalkType.User)
+        if (talkRequest.TalkType.IsFromUser())
         {
             sb.Append($"{pawns[1].LabelShort}({pawns[1].GetRole()}) said to {shortName}: '{talkRequest.Prompt}'.");
             if (Settings.Get().PlayerDialogueMode == Settings.PlayerDialogueMode.Manual)

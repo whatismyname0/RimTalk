@@ -78,7 +78,8 @@ public class GeminiClient : IAIClient
 
         float inactivityTimer = 0f;
         ulong lastBytes = 0;
-        const float connectTimeout = 30f;
+        const float connectTimeout = 60f;
+        const float readTimeout = 60f;
 
         while (!asyncOp.isDone)
         {
@@ -103,6 +104,12 @@ public class GeminiClient : IAIClient
             {
                 webRequest.Abort();
                 throw new TimeoutException($"Connection timed out ({connectTimeout}s)");
+            }
+            
+            if (hasStartedReceiving && inactivityTimer > readTimeout)
+            {
+                webRequest.Abort();
+                throw new TimeoutException($"Read timed out ({readTimeout}s)");
             }
         }
             
