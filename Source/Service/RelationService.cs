@@ -43,26 +43,26 @@ public static class RelationsService
                 
                 if (directRelations.Any())
                 {
-                    labels.AddRange(directRelations.Select(r => "我的"+r));
+                    labels.AddRange(directRelations.Select(r => $"{otherPawn.LabelShort}是我的"+r));
                 }
                 
                 // Add opinion-based label
                 string opinion = "";
                 if (opinionValue <= FuckOpinionThreshold)
                 {
-                    opinion = "我恨ta";
+                    opinion = $"我恨{otherPawn.LabelShort}";
                 }
                 else if (opinionValue >= LoveOpinionThreshold)
                 {
-                    opinion = "我喜爱ta";
+                    opinion = $"我喜爱{otherPawn.LabelShort}";
                 }
                 else if (opinionValue >= FriendOpinionThreshold)
                 {
-                    opinion = "我有点欣赏ta";
+                    opinion = $"我有点欣赏{otherPawn.LabelShort}";
                 }
                 else if (opinionValue <= RivalOpinionThreshold)
                 {
-                    opinion = "我有点厌恶ta";
+                    opinion = $"我有点厌恶{otherPawn.LabelShort}";
                 }
 
                 if (!string.IsNullOrEmpty(opinion))
@@ -75,19 +75,19 @@ public static class RelationsService
                 string reverseOpinion = "";
                 if (reverseOpinionValue <= FuckOpinionThreshold)
                 {
-                    reverseOpinion = "ta恨我";
+                    reverseOpinion = $"{otherPawn.LabelShort}恨我";
                 }
                 else if (reverseOpinionValue >= LoveOpinionThreshold)
                 {
-                    reverseOpinion = "ta喜爱我";
+                    reverseOpinion = $"{otherPawn.LabelShort}喜爱我";
                 }
                 else if (reverseOpinionValue >= FriendOpinionThreshold)
                 {
-                    reverseOpinion = "ta有点欣赏我";
+                    reverseOpinion = $"{otherPawn.LabelShort}有点欣赏我";
                 }
                 else if (reverseOpinionValue <= RivalOpinionThreshold)
                 {
-                    reverseOpinion = "ta有点厌恶我";
+                    reverseOpinion = $"{otherPawn.LabelShort}有点厌恶我";
                 }
 
                 if (!string.IsNullOrEmpty(reverseOpinion))
