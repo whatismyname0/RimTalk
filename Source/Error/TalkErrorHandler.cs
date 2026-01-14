@@ -12,9 +12,31 @@ public static class AIErrorHandler
 
     public static async Task<T> HandleWithRetry<T>(Func<Task<T>> operation, Action<Exception> onFailure = null)
     {
+        // Add overall timeout protection to prevent infinite hanging
+        const int overallTimeoutSeconds = 180; // 3 minutes maximum for entire operation
+        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(overallTimeoutSeconds));
+        
         try
         {
-            return await operation();
+            // Check if game is still running
+            if (Current.Game == null)
+            {
+                Logger.Warning("Game instance not found, cancelling operation");
+                return default;
+            }
+            
+            var operationTask = operation();
+            var completedTask = await Task.WhenAny(operationTask, timeoutTask);
+            
+            if (completedTask == timeoutTask)
+            {
+                var timeoutEx = new TimeoutException($"Operation exceeded overall timeout of {overallTimeoutSeconds}s");
+                HandleFinalFailure(timeoutEx);
+                onFailure?.Invoke(timeoutEx);
+                return default;
+            }
+            
+            return await operationTask;
         }
         catch (Exception ex)
         {
@@ -35,7 +57,26 @@ public static class AIErrorHandler
 
             try
             {
-                return await operation();
+                // Check if game is still running before retry
+                if (Current.Game == null)
+                {
+                    Logger.Warning("Game instance not found during retry, cancelling operation");
+                    return default;
+                }
+                
+                var retryTask = operation();
+                var retryTimeoutTask = Task.Delay(TimeSpan.FromSeconds(overallTimeoutSeconds));
+                var completedRetryTask = await Task.WhenAny(retryTask, retryTimeoutTask);
+                
+                if (completedRetryTask == retryTimeoutTask)
+                {
+                    var timeoutEx = new TimeoutException($"Retry operation exceeded overall timeout of {overallTimeoutSeconds}s");
+                    HandleFinalFailure(timeoutEx);
+                    onFailure?.Invoke(timeoutEx);
+                    return default;
+                }
+                
+                return await retryTask;
             }
             catch (Exception retryEx)
             {
