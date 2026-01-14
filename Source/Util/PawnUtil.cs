@@ -423,7 +423,7 @@ public static class PawnUtil
 
     private static readonly string[] MovementJobPatterns = { "Goto", "Flee", "Wait", "Wander" };
 
-    private static string GetActivity(this Pawn pawn)
+    internal static string GetActivity(this Pawn pawn)
     {
         if (pawn == null) return null;
 
