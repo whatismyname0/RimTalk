@@ -43,31 +43,56 @@ public static class RelationsService
                 
                 if (directRelations.Any())
                 {
-                    labels.AddRange(directRelations);
+                    labels.AddRange(directRelations.Select(r => "我的"+r));
                 }
                 
                 // Add opinion-based label
                 string opinion = "";
                 if (opinionValue <= FuckOpinionThreshold)
                 {
-                    opinion = "仇恨";
+                    opinion = "我恨ta";
                 }
                 else if (opinionValue >= LoveOpinionThreshold)
                 {
-                    opinion = "喜爱";
+                    opinion = "我喜爱ta";
                 }
                 else if (opinionValue >= FriendOpinionThreshold)
                 {
-                    opinion = "欣赏";
+                    opinion = "我有点欣赏ta";
                 }
                 else if (opinionValue <= RivalOpinionThreshold)
                 {
-                    opinion = "厌恶";
+                    opinion = "我有点厌恶ta";
                 }
 
                 if (!string.IsNullOrEmpty(opinion))
                 {
                     labels.Add(opinion);
+                }
+
+                // Add reverse opinion (how the other pawn views this pawn)
+                float reverseOpinionValue = otherPawn.relations.OpinionOf(pawn);
+                string reverseOpinion = "";
+                if (reverseOpinionValue <= FuckOpinionThreshold)
+                {
+                    reverseOpinion = "ta恨我";
+                }
+                else if (reverseOpinionValue >= LoveOpinionThreshold)
+                {
+                    reverseOpinion = "ta喜爱我";
+                }
+                else if (reverseOpinionValue >= FriendOpinionThreshold)
+                {
+                    reverseOpinion = "ta有点欣赏我";
+                }
+                else if (reverseOpinionValue <= RivalOpinionThreshold)
+                {
+                    reverseOpinion = "ta有点厌恶我";
+                }
+
+                if (!string.IsNullOrEmpty(reverseOpinion))
+                {
+                    labels.Add(reverseOpinion);
                 }
 
                 if (labels.Any())
@@ -88,7 +113,7 @@ public static class RelationsService
         {
             // Remove the trailing comma and space
             relationsSb.Length -= 2;
-            return $"对他人的看法或他人相对于自己的身份: {{ {relationsSb} }}";
+            return $"人际关系: {{ {relationsSb} }}";
         }
 
         return "";
