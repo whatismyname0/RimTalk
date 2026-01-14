@@ -84,4 +84,34 @@ public static class MustacheContextProvider
         
         return Describer.Cleanliness(room.GetStat(RoomStatDefOf.Cleanliness));
     }
+
+    /// <summary>
+    /// Gets the count of colonist population (all free colonists).
+    /// </summary>
+    public static string GetColonyPopulation(Map map) => map?.mapPawns?.FreeColonistsCount.ToString() ?? "0";
+
+    /// <summary>
+    /// Gets the count of permanent colonists (excluding quest lodgers).
+    /// </summary>
+    public static string GetColonyColonists(Map map) => (map?.mapPawns?.FreeColonists?.Count(p => !p.IsQuestLodger()) ?? 0).ToString();
+
+    /// <summary>
+    /// Gets the count of temporary residents (quest lodgers).
+    /// </summary>
+    public static string GetColonyTemporary(Map map) => (map?.mapPawns?.FreeColonists?.Count(p => p.IsQuestLodger()) ?? 0).ToString();
+
+    /// <summary>
+    /// Gets the count of prisoners of the colony.
+    /// </summary>
+    public static string GetColonyPrisoners(Map map) => map?.mapPawns?.PrisonersOfColonyCount.ToString() ?? "0";
+
+    /// <summary>
+    /// Gets the count of slaves of the colony.
+    /// </summary>
+    public static string GetColonySlaves(Map map) => (map?.mapPawns?.AllPawnsSpawned?.Count(p => p.IsSlaveOfColony) ?? 0).ToString();
+
+    /// <summary>
+    /// Gets the count of enemies currently on the map.
+    /// </summary>
+    public static string GetColonyEnemies(Map map) => (map?.mapPawns?.AllPawnsSpawned?.Count(p => p.HostileTo(Faction.OfPlayer) && !p.Dead) ?? 0).ToString();
 }

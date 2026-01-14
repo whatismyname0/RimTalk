@@ -482,7 +482,12 @@ For detailed documentation, see the docs/ folder in the mod directory.</RimTalk.
     <!-- Colony Variables -->
     <RimTalk.MustacheVar.colony.name>Colony name</RimTalk.MustacheVar.colony.name>
     <RimTalk.MustacheVar.colony.wealth>Total colony wealth</RimTalk.MustacheVar.colony.wealth>
-    <RimTalk.MustacheVar.colony.population>Colonist count</RimTalk.MustacheVar.colony.population>
+    <RimTalk.MustacheVar.colony.population>Standard population count</RimTalk.MustacheVar.colony.population>
+    <RimTalk.MustacheVar.colony.colonists>Permanent colonist count</RimTalk.MustacheVar.colony.colonists>
+    <RimTalk.MustacheVar.colony.temporary>Temporary resident count</RimTalk.MustacheVar.colony.temporary>
+    <RimTalk.MustacheVar.colony.prisoners>Prisoner count</RimTalk.MustacheVar.colony.prisoners>
+    <RimTalk.MustacheVar.colony.slaves>Slave count</RimTalk.MustacheVar.colony.slaves>
+    <RimTalk.MustacheVar.colony.enemies>Enemy count on map</RimTalk.MustacheVar.colony.enemies>
     
     <!-- System Variables -->
     <RimTalk.MustacheVar.lang>Current game language</RimTalk.MustacheVar.lang>

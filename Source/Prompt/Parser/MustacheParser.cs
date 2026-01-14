@@ -223,6 +223,7 @@ public static class MustacheParser
             "genes" => GetPawnGenes(pawn),
             "ideology" => GetPawnIdeology(pawn),
             "captive_status" => GetPawnCaptiveStatus(pawn),
+            "recentlogs" => GetPawnRecentLogs(pawn),
             "location" => MustacheContextProvider.GetLocationString(pawn),
             "terrain" => pawn?.Position.GetTerrain(pawn.Map)?.LabelCap ?? "",
             "beauty" => MustacheContextProvider.GetBeautyString(pawn),
@@ -335,18 +336,30 @@ public static class MustacheParser
         return varName switch
         {
             // Pawn categories
+            "pawn.name" or "name" => ContextCategories.Pawn.Name,
+            "pawn.fullname" or "fullname" => ContextCategories.Pawn.FullName,
+            "pawn.gender" or "gender" => ContextCategories.Pawn.Gender,
+            "pawn.age" or "age" => ContextCategories.Pawn.Age,
             "pawn.race" or "race" => ContextCategories.Pawn.Race,
+            "pawn.title" or "title" => ContextCategories.Pawn.Title,
+            "pawn.faction" or "faction" => ContextCategories.Pawn.Faction,
+            "pawn.role" or "role" => ContextCategories.Pawn.Role,
+            "pawn.job" or "job" => ContextCategories.Pawn.Job,
+            "pawn.personality" or "personality" => ContextCategories.Pawn.Personality,
             "pawn.mood" or "mood" => ContextCategories.Pawn.Mood,
-            "backstory" => ContextCategories.Pawn.Backstory,
-            "traits" => ContextCategories.Pawn.Traits,
-            "skills" => ContextCategories.Pawn.Skills,
-            "health" => ContextCategories.Pawn.Health,
-            "thoughts" => ContextCategories.Pawn.Thoughts,
-            "relations" => ContextCategories.Pawn.Relations,
-            "equipment" => ContextCategories.Pawn.Equipment,
-            "genes" => ContextCategories.Pawn.Genes,
-            "ideology" => ContextCategories.Pawn.Ideology,
-            "captive_status" => ContextCategories.Pawn.CaptiveStatus,
+            "pawn.moodpercent" or "moodpercent" => ContextCategories.Pawn.MoodPercent,
+            "pawn.profile" or "profile"  => ContextCategories.Pawn.Profile,
+            "pawn.backstory" or "backstory" => ContextCategories.Pawn.Backstory,
+            "pawn.traits" or "traits" => ContextCategories.Pawn.Traits,
+            "pawn.skills" or "skills" => ContextCategories.Pawn.Skills,
+            "pawn.health" or "health" => ContextCategories.Pawn.Health,
+            "pawn.thoughts" or "thoughts" => ContextCategories.Pawn.Thoughts,
+            "pawn.relations" or "relations" => ContextCategories.Pawn.Relations,
+            "pawn.equipment" or "equipment" => ContextCategories.Pawn.Equipment,
+            "pawn.genes" or "genes" => ContextCategories.Pawn.Genes,
+            "pawn.ideology" or "ideology" => ContextCategories.Pawn.Ideology,
+            "pawn.captive_status" or "captive_status" => ContextCategories.Pawn.CaptiveStatus,
+            "pawn.recentlogs" or "recentlogs" => ContextCategories.Pawn.RecentLogs,
             
             // Pawn location-based categories (moved from Environment)
             "location" => ContextCategories.Pawn.Location,
@@ -357,7 +370,7 @@ public static class MustacheParser
             
             // Environment categories
             "weather" => ContextCategories.Environment.Weather,
-            "wealth" => ContextCategories.Environment.Wealth,
+            "wealth" or "colony.wealth" => ContextCategories.Environment.Wealth,
             "time.hour" or "time.hour12" => ContextCategories.Environment.Time,
             "time.date" => ContextCategories.Environment.Date,
             "time.season" => ContextCategories.Environment.Season,
@@ -397,6 +410,7 @@ public static class MustacheParser
             "pawn.job" => GetPawnActivity(pawn),
             "pawn.role" => pawn?.GetRole() ?? "",
             "pawn.profile" => GetPawnProfile(pawn),
+            "pawn.recentlogs" => GetPawnRecentLogs(pawn),
             
             // Multiple pawns related
             "pawns.all" => GetAllPawnsProfiles(context),
@@ -425,7 +439,12 @@ public static class MustacheParser
             // Colony related
             "colony.name" => Find.CurrentMap?.Parent?.LabelCap ?? "",
             "colony.wealth" => map?.wealthWatcher?.WealthTotal.ToString("F0") ?? "",
-            "colony.population" => map?.mapPawns?.FreeColonistsCount.ToString() ?? "",
+            "colony.population" => MustacheContextProvider.GetColonyPopulation(map),
+            "colony.colonists" => MustacheContextProvider.GetColonyColonists(map),
+            "colony.temporary" => MustacheContextProvider.GetColonyTemporary(map),
+            "colony.prisoners" => MustacheContextProvider.GetColonyPrisoners(map),
+            "colony.slaves" => MustacheContextProvider.GetColonySlaves(map),
+            "colony.enemies" => MustacheContextProvider.GetColonyEnemies(map),
             
             // Dialogue related
             "dialogue" => context.DialoguePrompt ?? "",
@@ -564,6 +583,12 @@ public static class MustacheParser
         if (pawn == null) return "";
         return ContextBuilder.GetPrisonerSlaveContext(pawn, PromptService.InfoLevel.Normal) ?? "";
     }
+
+    private static string GetPawnRecentLogs(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return ContextBuilder.GetRecentLogsContext(pawn, PromptService.InfoLevel.Normal) ?? "";
+    }
     /// <summary>
     /// Gets a pawn's current activity using GetActivity() extension method.
     /// Returns detailed descriptions like "enjoying packaged survival meal" instead of just "ingest".
@@ -639,11 +664,17 @@ public static class MustacheParser
     private static string GetPawnRace(Pawn pawn)
     {
         if (pawn == null) return "";
+        
+        var raceLabel = pawn.def.label;
         if (ModsConfig.BiotechActive && pawn.genes?.Xenotype != null)
         {
-            return pawn.genes.XenotypeLabel;
+            var xenotypeLabel = pawn.genes.XenotypeLabel;
+            if (!string.IsNullOrEmpty(xenotypeLabel))
+            {
+                return $"{raceLabel}({xenotypeLabel})";
+            }
         }
-        return pawn.def.label;
+        return raceLabel;
     }
 
     // ===== Variable Registry =====
@@ -684,7 +715,8 @@ public static class MustacheParser
                 ("pawn1.equipment", "RimTalk.MustacheVar.pawn.equipment".Translate()),
                 ("pawn1.genes", "RimTalk.MustacheVar.pawn.genes".Translate()),
                 ("pawn1.ideology", "RimTalk.MustacheVar.pawn.ideology".Translate()),
-                ("pawn1.captive_status", "RimTalk.MustacheVar.pawn.captive_status".Translate())
+                ("pawn1.captive_status", "RimTalk.MustacheVar.pawn.captive_status".Translate()),
+                ("pawn1.recentlogs", "RimTalk.MustacheVar.pawn.recentlogs".Translate())
             },
             ["RimTalk.MustacheVar.Category.Pawn2Plus".Translate()] = new()
             {
@@ -732,7 +764,12 @@ public static class MustacheParser
             {
                 ("colony.name", "RimTalk.MustacheVar.colony.name".Translate()),
                 ("colony.wealth", "RimTalk.MustacheVar.colony.wealth".Translate()),
-                ("colony.population", "RimTalk.MustacheVar.colony.population".Translate())
+                ("colony.population", "RimTalk.MustacheVar.colony.population".Translate()),
+                ("colony.colonists", "RimTalk.MustacheVar.colony.colonists".Translate()),
+                ("colony.temporary", "RimTalk.MustacheVar.colony.temporary".Translate()),
+                ("colony.prisoners", "RimTalk.MustacheVar.colony.prisoners".Translate()),
+                ("colony.slaves", "RimTalk.MustacheVar.colony.slaves".Translate()),
+                ("colony.enemies", "RimTalk.MustacheVar.colony.enemies".Translate())
             },
             ["RimTalk.MustacheVar.Category.System".Translate()] = new()
             {

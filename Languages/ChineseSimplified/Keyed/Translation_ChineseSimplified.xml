@@ -483,7 +483,12 @@
     <!-- Colony Variables -->
     <RimTalk.MustacheVar.colony.name>殖民地名称</RimTalk.MustacheVar.colony.name>
     <RimTalk.MustacheVar.colony.wealth>殖民地总财富</RimTalk.MustacheVar.colony.wealth>
-    <RimTalk.MustacheVar.colony.population>殖民者数量</RimTalk.MustacheVar.colony.population>
+    <RimTalk.MustacheVar.colony.population>自由殖民者总数</RimTalk.MustacheVar.colony.population>
+    <RimTalk.MustacheVar.colony.colonists>永久殖民者数量</RimTalk.MustacheVar.colony.colonists>
+    <RimTalk.MustacheVar.colony.temporary>临时居民数量</RimTalk.MustacheVar.colony.temporary>
+    <RimTalk.MustacheVar.colony.prisoners>囚犯数量</RimTalk.MustacheVar.colony.prisoners>
+    <RimTalk.MustacheVar.colony.slaves>奴隶数量</RimTalk.MustacheVar.colony.slaves>
+    <RimTalk.MustacheVar.colony.enemies>地图上的敌人数量</RimTalk.MustacheVar.colony.enemies>
     
     <!-- System Variables -->
     <RimTalk.MustacheVar.lang>当前游戏语言</RimTalk.MustacheVar.lang>
