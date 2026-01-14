@@ -134,7 +134,13 @@ public class OpenAIClient(
 
         while (!asyncOp.isDone)
         {
-            if (Current.Game == null) return null;
+            // Abort if game is closing
+            if (Current.Game == null)
+            {
+                webRequest.Abort();
+                return null;
+            }
+            
             await Task.Delay(100);
             
             ulong currentBytes = webRequest.downloadedBytes;
@@ -153,12 +159,16 @@ public class OpenAIClient(
             if (!hasStartedReceiving && inactivityTimer > connectTimeout)
             {
                 webRequest.Abort();
+                return null;
+                Logger.Warning($"Connection timeout after {connectTimeout}s waiting for first token");
                 throw new TimeoutException($"Connection timed out (Waited {connectTimeout}s for first token)");
             }
 
             if (hasStartedReceiving && inactivityTimer > readTimeout)
             {
                 webRequest.Abort();
+                return null;
+                Logger.Warning($"Read timeout after {readTimeout}s of inactivity");
                 throw new TimeoutException($"Read timed out (Stalled for {readTimeout}s during generation)");
             }
         }

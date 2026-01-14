@@ -83,7 +83,13 @@ public class GeminiClient : IAIClient
 
         while (!asyncOp.isDone)
         {
-            if (Current.Game == null) return null;
+            // Abort if game is closing
+            if (Current.Game == null)
+            {
+                webRequest.Abort();
+                return null;
+            }
+            
             await Task.Delay(100);
 
             ulong currentBytes = webRequest.downloadedBytes;
@@ -103,12 +109,14 @@ public class GeminiClient : IAIClient
             if (!hasStartedReceiving && inactivityTimer > connectTimeout)
             {
                 webRequest.Abort();
+                Logger.Warning($"Connection timeout after {connectTimeout}s");
                 throw new TimeoutException($"Connection timed out ({connectTimeout}s)");
             }
             
             if (hasStartedReceiving && inactivityTimer > readTimeout)
             {
                 webRequest.Abort();
+                Logger.Warning($"Read timeout after {readTimeout}s");
                 throw new TimeoutException($"Read timed out ({readTimeout}s)");
             }
         }
