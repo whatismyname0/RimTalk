@@ -247,7 +247,26 @@ public static class ScribanParser
             "mood" => pawn.needs?.mood?.MoodString ?? "",
             "personality" => Cache.Get(pawn)?.Personality ?? "",
             "social" => RelationsService.GetRelationsString(pawn),
+            "fullname" => pawn.Name?.ToStringFull ?? "",
+            "gender" => pawn.gender.ToString(),
+            "age" => pawn.ageTracker?.AgeBiologicalYears.ToString() ?? "",
+            "race" => GetPawnRace(pawn),
+            "moodpercent" => pawn.needs?.mood?.CurLevelPercentage.ToString("P0") ?? "",
+            "title" => pawn.story?.title ?? "",
+            "faction" => pawn.Faction?.Name ?? "",
+            "profile" => GetPawnProfile(pawn),
+            "backstory" => GetPawnBackstory(pawn),
+            "traits" => GetPawnTraits(pawn),
+            "skills" => GetPawnSkills(pawn),
+            "health" => GetPawnHealth(pawn),
+            "thoughts" => GetPawnThoughts(pawn),
+            "equipment" => GetPawnEquipment(pawn),
+            "genes" => GetPawnGenes(pawn),
+            "ideology" => GetPawnIdeology(pawn),
+            "captive_status" => GetPawnCaptiveStatus(pawn),
+            "recentlogs" => GetPawnRecentLogs(pawn),
             "location" => PromptContextProvider.GetLocationString(pawn),
+            "terrain" => pawn?.Position.GetTerrain(pawn.Map)?.LabelCap ?? "",
             "beauty" => PromptContextProvider.GetBeautyString(pawn),
             "cleanliness" => PromptContextProvider.GetCleanlinessString(pawn),
             "surroundings" => ContextHelper.CollectNearbyContextText(pawn, 3) ?? "",
@@ -261,5 +280,93 @@ public static class ScribanParser
             "temperature" => Mathf.RoundToInt(map.mapTemperature.OutdoorTemp).ToString(),
             _ => null
         };
+    }
+
+    // ===== Pawn Context Helpers =====
+
+    private static string GetPawnProfile(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return PromptService.CreatePawnContext(pawn, PromptService.InfoLevel.Normal);
+    }
+
+    private static string GetPawnBackstory(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return ContextBuilder.GetBackstoryContext(pawn, PromptService.InfoLevel.Normal) ?? "";
+    }
+
+    private static string GetPawnTraits(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return ContextBuilder.GetTraitsContext(pawn, PromptService.InfoLevel.Normal) ?? "";
+    }
+
+    private static string GetPawnSkills(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return ContextBuilder.GetSkillsContext(pawn, PromptService.InfoLevel.Normal) ?? "";
+    }
+
+    private static string GetPawnHealth(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return ContextBuilder.GetHealthContext(pawn, PromptService.InfoLevel.Normal) ?? "";
+    }
+
+    private static string GetPawnThoughts(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return ContextBuilder.GetThoughtsContext(pawn, PromptService.InfoLevel.Normal) ?? "";
+    }
+
+    private static string GetPawnEquipment(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return ContextBuilder.GetEquipmentContext(pawn, PromptService.InfoLevel.Normal) ?? "";
+    }
+
+    private static string GetPawnGenes(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return ContextBuilder.GetNotableGenesContext(pawn, PromptService.InfoLevel.Normal) ?? "";
+    }
+
+    private static string GetPawnIdeology(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return ContextBuilder.GetIdeologyContext(pawn, PromptService.InfoLevel.Normal) ?? "";
+    }
+
+    private static string GetPawnCaptiveStatus(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return ContextBuilder.GetPrisonerSlaveContext(pawn, PromptService.InfoLevel.Normal) ?? "";
+    }
+
+    private static string GetPawnRecentLogs(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        return ContextBuilder.GetRecentLogsContext(pawn, PromptService.InfoLevel.Normal) ?? "";
+    }
+
+    /// <summary>
+    /// Gets a pawn's current activity using GetActivity() extension method.
+    /// Returns detailed descriptions like "enjoying packaged survival meal" instead of just "ingest".
+    /// </summary>
+    private static string GetPawnRace(Pawn pawn)
+    {
+        if (pawn == null) return "";
+        
+        var raceLabel = pawn.def.label;
+        if (ModsConfig.BiotechActive && pawn.genes?.Xenotype != null)
+        {
+            var xenotypeLabel = pawn.genes.XenotypeLabel;
+            if (!string.IsNullOrEmpty(xenotypeLabel))
+            {
+                return $"{raceLabel}({xenotypeLabel})";
+            }
+        }
+        return raceLabel;
     }
 }
