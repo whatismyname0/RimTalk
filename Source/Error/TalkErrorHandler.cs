@@ -14,7 +14,6 @@ public static class AIErrorHandler
     {
         // Add overall timeout protection to prevent infinite hanging
         const int overallTimeoutSeconds = 180; // 3 minutes maximum for entire operation
-        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(overallTimeoutSeconds));
         
         try
         {
@@ -25,8 +24,19 @@ public static class AIErrorHandler
                 return default;
             }
             
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(overallTimeoutSeconds));
             var operationTask = operation();
-            var completedTask = await Task.WhenAny(operationTask, timeoutTask);
+            
+            Task completedTask = null;
+            try
+            {
+                completedTask = await Task.WhenAny(operationTask, timeoutTask);
+            }
+            catch (Exception awaitEx)
+            {
+                Logger.Error($"Task.WhenAny exception: {awaitEx.Message}");
+                throw;
+            }
             
             if (completedTask == timeoutTask)
             {
@@ -36,7 +46,15 @@ public static class AIErrorHandler
                 return default;
             }
             
-            return await operationTask;
+            try
+            {
+                return await operationTask;
+            }
+            catch (Exception taskEx)
+            {
+                // Re-throw to be caught by outer catch
+                throw;
+            }
         }
         catch (Exception ex)
         {
@@ -64,9 +82,21 @@ public static class AIErrorHandler
                     return default;
                 }
                 
-                var retryTask = operation();
                 var retryTimeoutTask = Task.Delay(TimeSpan.FromSeconds(overallTimeoutSeconds));
-                var completedRetryTask = await Task.WhenAny(retryTask, retryTimeoutTask);
+                var retryTask = operation();
+                
+                Task completedRetryTask = null;
+                try
+                {
+                    completedRetryTask = await Task.WhenAny(retryTask, retryTimeoutTask);
+                }
+                catch (Exception awaitEx)
+                {
+                    Logger.Error($"Retry Task.WhenAny exception: {awaitEx.Message}");
+                    HandleFinalFailure(awaitEx);
+                    onFailure?.Invoke(awaitEx);
+                    return default;
+                }
                 
                 if (completedRetryTask == retryTimeoutTask)
                 {
@@ -76,11 +106,18 @@ public static class AIErrorHandler
                     return default;
                 }
                 
-                return await retryTask;
+                try
+                {
+                    return await retryTask;
+                }
+                catch (Exception taskEx)
+                {
+                    throw;
+                }
             }
             catch (Exception retryEx)
             {
-                Logger.Warning($"Retry failed: {retryEx.Message}");
+                Logger.Warning($"Retry failed: {retryEx.Message}\n{retryEx.StackTrace}");
                 HandleFinalFailure(ex); // Show the original error logic
                 onFailure?.Invoke(retryEx);
                 return default;
