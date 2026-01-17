@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using RimTalk.Client.OpenAI;
 using RimTalk.Source.Data;
 using RimTalk.Util;
 using RimWorld;
@@ -113,6 +114,10 @@ public class PawnState(Pawn pawn)
     public void IgnoreTalkResponse()
     {
         if (TalkResponses.Count == 0) return;
+        
+        // Abort any ongoing AI request for all providers
+        OpenAIClient.AbortCurrentRequest();
+        
         var talkResponse = TalkResponses[0];
         TalkHistory.AddIgnored(talkResponse.Id);
         TalkResponses.Remove(talkResponse);

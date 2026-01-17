@@ -20,6 +20,21 @@ public class OpenAIClient(
 {
     private const string DefaultPath = "/v1/chat/completions";
     private readonly string _endpointUrl = FormatEndpointUrl(baseUrl);
+    private static UnityWebRequest _currentRequest;
+    private static readonly object _requestLock = new object();
+    
+    public static void AbortCurrentRequest()
+    {
+        lock (_requestLock)
+        {
+            if (_currentRequest != null)
+            {
+                Logger.Debug("Aborting current AI request");
+                _currentRequest.Abort();
+                _currentRequest = null;
+            }
+        }
+    }
 
     private static string FormatEndpointUrl(string baseUrl)
     {
@@ -107,63 +122,49 @@ public class OpenAIClient(
 
         Logger.Debug($"API request: {_endpointUrl}\n{jsonContent}");
 
-        using var webRequest = new UnityWebRequest(_endpointUrl, "POST");
-        webRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonContent));
-        webRequest.downloadHandler = downloadHandler;
-        webRequest.SetRequestHeader("Content-Type", "application/json");
-
-        if (!string.IsNullOrEmpty(apiKey))
-            webRequest.SetRequestHeader("Authorization", $"Bearer {apiKey}");
-
-        if (extraHeaders != null)
+        UnityWebRequest webRequest = null;
+        try
         {
-            foreach (var header in extraHeaders)
-                webRequest.SetRequestHeader(header.Key, header.Value);
-        }
-
-        var asyncOp = webRequest.SendWebRequest();
-
-        // Determine if target is local
-        bool isLocal = _endpointUrl.Contains("localhost") || _endpointUrl.Contains("127.0.0.1") ||
-                       _endpointUrl.Contains("192.168.") || _endpointUrl.Contains("10.");
-
-        float inactivityTimer = 0f;
-        ulong lastBytes = 0;
-        float connectTimeout = isLocal ? 300f : 60f;
-        float readTimeout = 60f; 
-
-        while (!asyncOp.isDone)
-        {
-            if (Current.Game == null) return null;
-            await Task.Delay(100);
+            webRequest = new UnityWebRequest(_endpointUrl, "POST");
+            webRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonContent));
+            webRequest.downloadHandler = downloadHandler;
+            webRequest.SetRequestHeader("Content-Type", "application/json");
             
-            ulong currentBytes = webRequest.downloadedBytes;
-            bool hasStartedReceiving = currentBytes > 0;
-
-            if (currentBytes > lastBytes)
+            lock (_requestLock)
             {
-                inactivityTimer = 0f;
-                lastBytes = currentBytes;
-            }
-            else
-            {
-                inactivityTimer += 0.1f;
+                _currentRequest = webRequest;
             }
 
-            if (!hasStartedReceiving && inactivityTimer > connectTimeout)
+            if (!string.IsNullOrEmpty(apiKey))
+                webRequest.SetRequestHeader("Authorization", $"Bearer {apiKey}");
+
+            if (extraHeaders != null)
             {
-                webRequest.Abort();
-                throw new TimeoutException($"Connection timed out (Waited {connectTimeout}s for first token)");
+                foreach (var header in extraHeaders)
+                    webRequest.SetRequestHeader(header.Key, header.Value);
             }
 
-            if (hasStartedReceiving && inactivityTimer > readTimeout)
-            {
-                webRequest.Abort();
-                throw new TimeoutException($"Read timed out (Stalled for {readTimeout}s during generation)");
-            }
-        }
+            var asyncOp = webRequest.SendWebRequest();
 
-        string responseText = downloadHandler.text;
+            // Determine if target is local
+            bool isLocal = _endpointUrl.Contains("localhost") || _endpointUrl.Contains("127.0.0.1") ||
+                           _endpointUrl.Contains("192.168.") || _endpointUrl.Contains("10.");
+
+            while (!asyncOp.isDone)
+            {
+                try
+                {
+                    await Task.Delay(100);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning($"Task.Delay exception: {ex.Message}");
+                    webRequest?.Abort();
+                    throw;
+                }
+            }
+
+            string responseText = downloadHandler.text;
 
         // Recover text for streaming errors
         if ((webRequest.responseCode >= 400 || webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError) &&
@@ -188,12 +189,32 @@ public class OpenAIClient(
                 new Payload(_endpointUrl, model, jsonContent, responseText, 0, errorMsg));
         }
 
-        if (downloadHandler is DownloadHandlerBuffer)
-            Logger.Debug($"API response: \n{responseText}");
-        else if (downloadHandler is OpenAIStreamHandler sh)
-            Logger.Debug($"API response: \n{sh.GetRawJson()}");
+            if (downloadHandler is DownloadHandlerBuffer)
+                Logger.Debug($"API response: \n{responseText}");
+            else if (downloadHandler is OpenAIStreamHandler sh)
+                Logger.Debug($"API response: \n{sh.GetRawJson()}");
 
-        return responseText;
+            return responseText;
+        }
+        catch (Exception ex)
+        {
+            // Ensure request is aborted on any exception
+            webRequest?.Abort();
+            Logger.Error($"SendRequestAsync exception: {ex.Message}");
+            throw;
+        }
+        finally
+        {
+            // Ensure proper cleanup
+            lock (_requestLock)
+            {
+                if (_currentRequest == webRequest)
+                {
+                    _currentRequest = null;
+                }
+            }
+            webRequest?.Dispose();
+        }
     }
 
     public static async Task<List<string>> FetchModelsAsync(string apiKey, string url)
