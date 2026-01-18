@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -8,24 +7,9 @@ public class JsonStreamParser<T> where T : class
 {
     private readonly StringBuilder _buffer = new();
 
-    private int ParseCount = 0;
-    private int LastBufferSize = 0;
-
     public List<T> Parse(string textChunk)
     {
         _buffer.Append(textChunk);
-
-        if (LastBufferSize > _buffer.Length)
-        {
-            Logger.Debug($"[JsonStreamParser] Total buffer size after {ParseCount} parses: {LastBufferSize} chars");
-            ParseCount = 0;
-        }
-        LastBufferSize = _buffer.Length;
-        ParseCount++;
-        if (ParseCount % 10 == 0)
-        {
-            Logger.Debug($"[JsonStreamParser] Present buffer size after {ParseCount} parses: {_buffer.Length} chars");
-        }
         var newObjects = new List<T>();
         string text = _buffer.ToString();
         int searchStart = 0;
@@ -46,7 +30,7 @@ public class JsonStreamParser<T> where T : class
                 break;
             }
 
-            string jsonObj = JsonUtil.ProcessResponse(text.Substring(objStart, objEnd - objStart + 1));
+            string jsonObj = text.Substring(objStart, objEnd - objStart + 1);
 
             try
             {
@@ -54,17 +38,11 @@ public class JsonStreamParser<T> where T : class
                 if (parsedObject != null)
                 {
                     newObjects.Add(parsedObject);
-                    Logger.Debug($"[JsonStreamParser] Successfully parsed object: {typeof(T).Name}");
-                }
-                else
-                {
-                    Logger.Warning($"[JsonStreamParser] Parsed object is null. JSON: {jsonObj}");
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 // Not a valid object, continue searching
-                Logger.Warning($"[JsonStreamParser] Failed to parse JSON object: {ex.Message}\nJSON: {jsonObj}");
             }
 
             searchStart = objEnd + 1;

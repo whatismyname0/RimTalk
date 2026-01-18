@@ -71,6 +71,7 @@ public partial class Settings : Mod
 
         var archivableTypes = new HashSet<string>();
 
+        // Scan all assemblies for IArchivable implementations (includes mods)
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
             try
@@ -91,6 +92,7 @@ public partial class Settings : Mod
             }
         }
 
+        // Also add types from current archive if game is loaded (to catch any missed runtime types)
         if (Current.Game != null && Find.Archive != null)
         {
             foreach (var archivable in Find.Archive.ArchivablesListForReading)
@@ -108,11 +110,13 @@ public partial class Settings : Mod
         _discoveredArchivableTypes = archivableTypes.OrderBy(x => x).ToList();
         _archivableTypesScanned = true;
 
+        // Initialize settings for new types
         RimTalkSettings settings = Get();
         foreach (var typeName in _discoveredArchivableTypes)
         {
             if (!settings.EnabledArchivableTypes.ContainsKey(typeName))
             {
+                // Enable by default for most types, but disable Verse.Message specifically
                 bool defaultEnabled = !typeName.Equals("Verse.Message", StringComparison.OrdinalIgnoreCase);
                 settings.EnabledArchivableTypes[typeName] = defaultEnabled;
             }

@@ -133,9 +133,10 @@ public static class RimTalkPromptAPI
     
     /// <summary>
     /// Adds a prompt entry to the currently active preset (at the end).
+    /// Automatically checks for duplicates based on Name and SourceModId.
     /// </summary>
     /// <param name="entry">The prompt entry to add</param>
-    /// <returns>Whether the addition was successful</returns>
+    /// <returns>Whether the addition was successful (false if duplicate found)</returns>
     public static bool AddPromptEntry(PromptEntry entry)
     {
         if (entry == null) return false;
@@ -147,6 +148,13 @@ public static class RimTalkPromptAPI
             return false;
         }
 
+        // Check for duplicate entries (same Name and SourceModId)
+        if (HasDuplicateEntry(preset, entry))
+        {
+            Logger.Debug($"Skipped duplicate prompt entry: {entry.Name} (SourceModId: {entry.SourceModId})");
+            return false;
+        }
+
         preset.AddEntry(entry);
         Logger.Debug($"Added prompt entry: {entry.Name}");
         return true;
@@ -154,10 +162,11 @@ public static class RimTalkPromptAPI
 
     /// <summary>
     /// Inserts a prompt entry at a specific index in the currently active preset.
+    /// Automatically checks for duplicates based on Name and SourceModId.
     /// </summary>
     /// <param name="entry">The prompt entry to insert</param>
     /// <param name="index">The index to insert at (0 = beginning, -1 or >= Count = end)</param>
-    /// <returns>Whether the insertion was successful</returns>
+    /// <returns>Whether the insertion was successful (false if duplicate found)</returns>
     public static bool InsertPromptEntry(PromptEntry entry, int index)
     {
         if (entry == null) return false;
@@ -169,6 +178,13 @@ public static class RimTalkPromptAPI
             return false;
         }
 
+        // Check for duplicate entries (same Name and SourceModId)
+        if (HasDuplicateEntry(preset, entry))
+        {
+            Logger.Debug($"Skipped duplicate prompt entry: {entry.Name} (SourceModId: {entry.SourceModId})");
+            return false;
+        }
+
         preset.InsertEntry(entry, index);
         Logger.Debug($"Inserted prompt entry: {entry.Name} at index {index}");
         return true;
@@ -176,10 +192,11 @@ public static class RimTalkPromptAPI
 
     /// <summary>
     /// Inserts a prompt entry after a specific entry in the currently active preset.
+    /// Automatically checks for duplicates based on Name and SourceModId.
     /// </summary>
     /// <param name="entry">The prompt entry to insert</param>
     /// <param name="afterEntryId">The ID of the entry to insert after</param>
-    /// <returns>Whether the target entry was found (entry is always added)</returns>
+    /// <returns>Whether the target entry was found (false if duplicate found or entry not found)</returns>
     public static bool InsertPromptEntryAfter(PromptEntry entry, string afterEntryId)
     {
         if (entry == null) return false;
@@ -191,6 +208,13 @@ public static class RimTalkPromptAPI
             return false;
         }
 
+        // Check for duplicate entries (same Name and SourceModId)
+        if (HasDuplicateEntry(preset, entry))
+        {
+            Logger.Debug($"Skipped duplicate prompt entry: {entry.Name} (SourceModId: {entry.SourceModId})");
+            return false;
+        }
+
         var result = preset.InsertEntryAfter(entry, afterEntryId);
         Logger.Debug($"Inserted prompt entry: {entry.Name} after {afterEntryId} (found: {result})");
         return result;
@@ -198,10 +222,11 @@ public static class RimTalkPromptAPI
 
     /// <summary>
     /// Inserts a prompt entry before a specific entry in the currently active preset.
+    /// Automatically checks for duplicates based on Name and SourceModId.
     /// </summary>
     /// <param name="entry">The prompt entry to insert</param>
     /// <param name="beforeEntryId">The ID of the entry to insert before</param>
-    /// <returns>Whether the target entry was found (entry is always added)</returns>
+    /// <returns>Whether the target entry was found (false if duplicate found or entry not found)</returns>
     public static bool InsertPromptEntryBefore(PromptEntry entry, string beforeEntryId)
     {
         if (entry == null) return false;
@@ -210,6 +235,13 @@ public static class RimTalkPromptAPI
         if (preset == null)
         {
             Logger.Warning("RimTalkPromptAPI.InsertPromptEntryBefore: No active preset");
+            return false;
+        }
+
+        // Check for duplicate entries (same Name and SourceModId)
+        if (HasDuplicateEntry(preset, entry))
+        {
+            Logger.Debug($"Skipped duplicate prompt entry: {entry.Name} (SourceModId: {entry.SourceModId})");
             return false;
         }
 
@@ -573,5 +605,22 @@ public static class RimTalkPromptAPI
         var sanitized = Regex.Replace(modId.ToLowerInvariant(), @"[^a-z0-9]", "");
         // Ensure it's not empty
         return string.IsNullOrEmpty(sanitized) ? "unknown" : sanitized;
+    }
+
+    /// <summary>
+    /// Checks if a preset already contains an entry with the same Name and SourceModId.
+    /// This prevents duplicate entries from being added when loading saves.
+    /// </summary>
+    /// <param name="preset">The preset to check</param>
+    /// <param name="entry">The entry to check for duplicates</param>
+    /// <returns>True if a duplicate exists</returns>
+    private static bool HasDuplicateEntry(PromptPreset preset, PromptEntry entry)
+    {
+        if (preset?.Entries == null || entry == null) return false;
+
+        // Check for entries with same Name and SourceModId
+        return preset.Entries.Any(e => 
+            e.Name == entry.Name && 
+            e.SourceModId == entry.SourceModId);
     }
 }
