@@ -469,10 +469,6 @@ public static class ContextBuilder
             {
                 if (entry == null) continue;
 
-                // Exclude RimTalk-produced logs
-                if (entry is PlayLogEntry_RimTalkInteraction) continue;
-                if (entry is PlayLogEntry_Interaction interaction && InteractionTextPatch.IsRimTalkInteraction(interaction)) continue;
-
                 int entryTicks = (int)ticksField.GetValue(entry);
                 int ticksAgo = currentTick - entryTicks;
                 
@@ -546,16 +542,17 @@ public static class ContextBuilder
         if (!recentItems.Any()) return null;
 
         // Sort by time (most recent first)
+        recentItems.Reverse();
         recentItems = recentItems.OrderByDescending(item => item.ticksAgo).ToList();
 
         // If infoLevel is Normal or Short, limit to 5 most recent items
         if (infoLevel <= PromptService.InfoLevel.Normal)
-            recentItems = recentItems.TakeLast(5).ToList();
+            recentItems = recentItems.TakeLast(8).ToList();
         else
-            recentItems = recentItems.TakeLast(20).ToList();
+            recentItems = recentItems.TakeLast(24).ToList();
 
         var sb = new StringBuilder();
-        sb.Append("行为日志(时间顺序,从远到近):\n{");
+        sb.Append("Recent Actions (chronological order, oldest to newest):\n{");
         
         for (int i = 0; i < recentItems.Count; i++)
         {
@@ -565,17 +562,17 @@ public static class ContextBuilder
             if (i == recentItems.Count-1 && item.ticksAgo <= 500)
             {
                 // Most recent log
-                prefix = "正在进行:";
+                prefix = "Currently:";
             }
             else if (item.ticksAgo <= twoHoursTicks)
             {
                 // Within 2 hours
-                prefix = "刚刚做过:";
+                prefix = "Recently:";
             }
             else
             {
                 // Within 16 hours
-                prefix = "早些时候:";
+                prefix = "Earlier:";
             }
 
             sb.AppendLine().Append(prefix + item.content);
