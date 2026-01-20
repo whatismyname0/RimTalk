@@ -118,6 +118,77 @@ public static class PawnUtil
         return pawn.ageTracker?.CurLifeStage?.developmentalStage < DevelopmentalStage.Child;
     }
 
+    public static bool IsHavingSex(this Pawn pawn)
+    {
+        if (pawn?.jobs?.curDriver == null) return false;
+        
+        var curJob = pawn.CurJob;
+        if (curJob == null) return false;
+        
+        var jobDefName = curJob.def?.defName;
+        if (string.IsNullOrEmpty(jobDefName)) return false;
+        
+        // RJW 性相关工作
+        var sexJobDefs = new HashSet<string>
+        {
+            // RJW Jobs_Sex.xml
+            "JoinInBed",
+            "GettinLoved",
+            "GettinLicked",
+            "GettinSucked",
+            
+            // RJW Jobs_Masturbate.xml
+            "RJW_Masturbate",
+            
+            // RJW Jobs_Rape.xml
+            "GettinRaped",
+            "RapeComfortPawn",
+            "RandomRape",
+            "RapeEnemy",
+            "RapeEnemyByInsect",
+            "RapeEnemyByAnimal",
+            "RapeEnemyByMech",
+            "RapeEnemyToParasite",
+            
+            // RJW Jobs_Quickie.xml
+            "Quickie",
+            "GettingQuickie",
+            
+            // RJW Jobs_Bestiality.xml
+            "GettinBred",
+            "Breed",
+            "RJW_Mate",
+            "Bestiality",
+            "BestialityForFemale",
+            
+            // RJW Jobs_Necro.xml
+            "ViolateCorpse",
+            
+            // RJW Jobs_Knotted.xml
+            "RJW_Knotted",
+            
+            // futa-and-necro-addon InteractionDefs (自慰)
+            "Masturbation_AutoPenetration",
+            
+            // RJW_Onahole 束缚家具相关
+            "UseOnahole",
+            "BeOnahole",
+            "BindOnahole",
+            "UnbindOnahole",
+            
+            // Cumpilation 清理和排液相关
+            "Cumpilation_CleanSelf",
+            "Cumpilation_CleanSelfWithSink",
+            "DeflateBucket",
+            "DeflateClean",
+            "DeflateDirty",
+            "Cumpilation_OverflowingCumflation",
+            "Cumpilation_VomitFluid"
+        };
+        
+        return sexJobDefs.Contains(jobDefName);
+    }
+
     public static (string, bool) GetPawnStatusFull(this Pawn pawn, List<Pawn> nearbyPawns)
     {
         var settings = Settings.Get();
@@ -152,7 +223,7 @@ public static class PawnUtil
         // 3. Combined Nearby List
         if (nearbyPawns != null && nearbyPawns.Any())
         {
-            string nearbyList = GetCombinedNearbyList(pawn, nearbyPawns, relevantPawns,
+            string nearbyList = GetCombinedNearbyList(pawn, nearbyPawns.Where(p => p != Cache.GetPlayer()).ToList(), relevantPawns,
                 useOptimization, settings.Context.MaxPawnContextCount, ref isInDanger);
 
             lines.Add("Nearby:\n{" + nearbyList + "\n}");
