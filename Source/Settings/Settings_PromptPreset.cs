@@ -1016,9 +1016,9 @@ public partial class Settings
         foreach (var file in files)
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
-            options.Add(new FloatMenuOption(fileName, () =>
+            options.Add(new FloatMenuOption(fileName, async () =>
             {
-                var preset = PresetSerializer.ImportFromFile(file);
+                var preset = await PresetSerializer.ImportFromFile(file);
                 if (preset != null)
                 {
                     preset.Name = manager.GetUniqueName(preset.Name);

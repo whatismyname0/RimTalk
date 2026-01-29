@@ -217,7 +217,7 @@ public class Player2Client : IAIClient
 
         if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
         {
-            string errorMsg = ErrorUtil.ExtractErrorMessage(responseText) ?? webRequest.error;
+            string errorMsg = await ErrorUtil.ExtractErrorMessage(responseText) ?? webRequest.error;
             Logger.Error($"Player2 failed: {webRequest.responseCode} - {errorMsg}");
             throw new AIRequestException(errorMsg, new Payload(url, null, jsonContent, responseText, 0, errorMsg));
         }

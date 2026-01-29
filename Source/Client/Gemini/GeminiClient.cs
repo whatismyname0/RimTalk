@@ -127,13 +127,13 @@ public class GeminiClient : IAIClient
 
         if (webRequest.responseCode == 429 || webRequest.responseCode == 503)
         {
-            string errorMsg = ErrorUtil.ExtractErrorMessage(responseText) ?? "Quota exceeded/Overloaded";
+            string errorMsg = await ErrorUtil.ExtractErrorMessage(responseText) ?? "Quota exceeded/Overloaded";
             throw new QuotaExceededException(errorMsg, new Payload(BaseUrl, CurrentModel, jsonContent, responseText, 0, errorMsg));
         }
 
         if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
         {
-            string errorMsg = ErrorUtil.ExtractErrorMessage(responseText) ?? $"Request failed: {webRequest.responseCode} - {webRequest.error}";
+            string errorMsg = await ErrorUtil.ExtractErrorMessage(responseText) ?? $"Request failed: {webRequest.responseCode} - {webRequest.error}";
             Logger.Error(errorMsg);
             throw new AIRequestException(errorMsg, new Payload(BaseUrl, CurrentModel, jsonContent, responseText, 0, errorMsg));
         }

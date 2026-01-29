@@ -430,7 +430,7 @@ public static class ContextBuilder
 
         if (contextSettings.IncludeSurroundings)
         {
-            var surroundingsText = ContextHelper.CollectNearbyContextText(mainPawn, 4);
+            var surroundingsText = ContextHelper.CollectNearbyContextText(mainPawn);
             if (!string.IsNullOrEmpty(surroundingsText))
             {
                 var value = ContextHookRegistry.ApplyPawnHooks(

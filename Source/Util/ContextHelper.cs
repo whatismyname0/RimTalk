@@ -307,9 +307,7 @@ DONE:
         var label = customLabel ?? def.LabelCap;
 
         // For corpses with custom labels, use the custom label as part of the key to avoid aggregation
-        var key = customLabel != null && kind == NearbyKind.Corpse
-            ? $"{kind}|{thing.thingIDNumber}"
-            : $"{kind}|{def.defName}";
+        var key = $"{kind}|{def.defName+(customLabel != null ? $"|{customLabel}" : "")}";
 
         if (!aggs.TryGetValue(key, out var agg))
         {

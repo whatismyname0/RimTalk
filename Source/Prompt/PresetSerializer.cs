@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using RimTalk.Util;
 using Verse;
+using System.Threading.Tasks;
 
 namespace RimTalk.Prompt;
 
@@ -36,7 +37,7 @@ public static class PresetSerializer
     /// <summary>
     /// Imports a preset from JSON string.
     /// </summary>
-    public static PromptPreset ImportFromJson(string json)
+    public static async Task<PromptPreset> ImportFromJson(string json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         
@@ -101,7 +102,7 @@ public static class PresetSerializer
     /// <summary>
     /// Imports a preset from a file.
     /// </summary>
-    public static PromptPreset ImportFromFile(string path)
+    public static async Task<PromptPreset> ImportFromFile(string path)
     {
         try
         {
@@ -112,7 +113,7 @@ public static class PresetSerializer
             }
             
             var json = File.ReadAllText(path, Encoding.UTF8);
-            return ImportFromJson(json);
+            return await ImportFromJson(json);
         }
         catch (Exception ex)
         {

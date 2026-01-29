@@ -91,7 +91,7 @@ public static class PromptService
 
         var personality = Cache.Get(pawn).Personality;
         if (personality != null)
-            sb.AppendLine($"Personality: {personality}");
+            sb.AppendLine($"心理特质: {personality}");
 
         // Stop here for invaders
         if (pawn.IsEnemy())

@@ -167,6 +167,14 @@ public static class PawnUtil
             // RJW Jobs_Knotted.xml
             "RJW_Knotted",
             
+            // RJW Jobs_Bondage.xml - 束缚相关（可能不算性行为但与性相关）
+            "StruggleInBondageGear",
+            "UnlockBondageGear",
+            "GiveBondageGear",
+            
+            // RJW Jobs_Biotech.xml
+            "RJW_HackMechPregnancy",
+            
             // futa-and-necro-addon InteractionDefs (自慰)
             "Masturbation_AutoPenetration",
             

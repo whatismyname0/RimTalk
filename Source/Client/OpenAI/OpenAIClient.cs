@@ -198,14 +198,14 @@ public class OpenAIClient(
 
         if (webRequest.responseCode == 429)
         {
-            string errorMsg = ErrorUtil.ExtractErrorMessage(responseText) ?? "Quota exceeded";
+            string errorMsg = await ErrorUtil.ExtractErrorMessage(responseText) ?? "Quota exceeded";
             throw new QuotaExceededException(errorMsg,
                 new Payload(_endpointUrl, model, jsonContent, responseText, 0, errorMsg));
         }
 
         if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
         {
-            string errorMsg = ErrorUtil.ExtractErrorMessage(responseText) ?? webRequest.error;
+            string errorMsg = await ErrorUtil.ExtractErrorMessage(responseText) ?? webRequest.error;
             Logger.Error($"Request failed: {webRequest.responseCode} - {errorMsg}");
             throw new AIRequestException(errorMsg,
                 new Payload(_endpointUrl, model, jsonContent, responseText, 0, errorMsg));

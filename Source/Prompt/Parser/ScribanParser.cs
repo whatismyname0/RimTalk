@@ -269,7 +269,7 @@ public static class ScribanParser
             "terrain" => pawn?.Position.GetTerrain(pawn.Map)?.LabelCap ?? "",
             "beauty" => PromptContextProvider.GetBeautyString(pawn),
             "cleanliness" => PromptContextProvider.GetCleanlinessString(pawn),
-            "surroundings" => ContextHelper.CollectNearbyContextText(pawn, 3) ?? "",
+            "surroundings" => ContextHelper.CollectNearbyContextText(pawn) ?? "",
             _ => null
         };
     }

@@ -89,9 +89,13 @@ public static class RelationsService
                     reverseOpinion = GetOpinionLabel(reverseAttitudeType, otherPawn.LabelShort, true);
                 }
 
+                if (string.IsNullOrEmpty(opinion) && !string.IsNullOrEmpty(reverseOpinion))
+                    labels.Add($"我对{otherPawn.LabelShort}没有特别意见");
                 if (!string.IsNullOrEmpty(reverseOpinion))
-                {
                     labels.Add(reverseOpinion);
+                else if (!string.IsNullOrEmpty(opinion))
+                {
+                    labels.Add($"{otherPawn.LabelShort}对我没有特别意见");
                 }
 
                 // Check if this pawn should be skipped due to group attitude
@@ -311,7 +315,7 @@ public static class RelationsService
         {
             foreach (var (groupType, groupAttitude, isReverse) in groupAttitudes)
             {
-                if (groupType == otherPawnGroupType && groupAttitude == attitudeType && !isReverse)
+                if (groupType == otherPawnGroupType && (groupAttitude == attitudeType || (groupAttitude == AttitudeType.Hate && attitudeType == AttitudeType.Dislike) || (groupAttitude == AttitudeType.Love && attitudeType == AttitudeType.Like)) && !isReverse)
                 {
                     // Skip if this is the only label
                     if (reverseAttitudeType == AttitudeType.None)
@@ -319,7 +323,7 @@ public static class RelationsService
                     // Also skip if the reverse attitude is also in group attitudes
                     foreach (var (groupType2, groupAttitude2, isReverse2) in groupAttitudes)
                     {
-                        if (groupType2 == otherPawnGroupType && groupAttitude2 == reverseAttitudeType && isReverse2)
+                        if (groupType2 == otherPawnGroupType && (groupAttitude2 == reverseAttitudeType || (groupAttitude2 == AttitudeType.Hate && reverseAttitudeType == AttitudeType.Dislike) || (groupAttitude2 == AttitudeType.Love && reverseAttitudeType == AttitudeType.Like)) && isReverse2)
                             return true;
                     }
                 }
@@ -331,7 +335,7 @@ public static class RelationsService
         {
             foreach (var (groupType, groupAttitude, isReverse) in groupAttitudes)
             {
-                if (groupType == otherPawnGroupType && groupAttitude == reverseAttitudeType && isReverse)
+                if (groupType == otherPawnGroupType && (groupAttitude == reverseAttitudeType || (groupAttitude == AttitudeType.Hate && reverseAttitudeType == AttitudeType.Dislike) || (groupAttitude == AttitudeType.Love && reverseAttitudeType == AttitudeType.Like)) && isReverse)
                 {
                     // Skip if this is the only label
                     if (attitudeType == AttitudeType.None)

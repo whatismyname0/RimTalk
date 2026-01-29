@@ -1,11 +1,12 @@
 using System;
 using RimTalk.Data;
+using System.Threading.Tasks;
 
 namespace RimTalk.Util;
 
 public static class ErrorUtil
 {
-    public static string ExtractErrorMessage(string jsonResponse)
+    public static async Task<string> ExtractErrorMessage(string jsonResponse)
     {
         if (string.IsNullOrEmpty(jsonResponse))
             return null;
