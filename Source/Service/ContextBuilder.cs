@@ -354,25 +354,63 @@ public static class ContextBuilder
 
     public static void BuildDialogueType(StringBuilder sb, TalkRequest talkRequest, List<Pawn> pawns, string shortName, Pawn mainPawn)
     {
+        if (sb == null || talkRequest == null || pawns == null || mainPawn == null)
+            return;
+
+        if (string.IsNullOrEmpty(shortName))
+            shortName = mainPawn.LabelShort ?? "Unknown";
+
+        var settings = Settings.Get();
+        if (settings == null)
+            return;
+
         if (talkRequest.TalkType.IsFromUser())
         {
-            sb.Append($"{pawns[1].LabelShort}({pawns[1].GetRole()}) said to {shortName}: '{talkRequest.Prompt}'.");
-            if (Settings.Get().PlayerDialogueMode == Settings.PlayerDialogueMode.Manual)
-                sb.Append($"Generate dialogue starting after this. Do not generate any further lines for {pawns[1].LabelShort}");
-            else if (Settings.Get().PlayerDialogueMode == Settings.PlayerDialogueMode.AIDriven)
-                if (pawns[1].LabelShort == Settings.Get().PlayerName)
+            if (pawns.Count < 2)
+            {
+                Log.Warning("[RimTalk] BuildDialogueType: pawns list must have at least 2 elements for user dialogue");
+                return;
+            }
+
+            var speakerPawn = pawns[1];
+            if (speakerPawn == null)
+            {
+                Log.Warning("[RimTalk] BuildDialogueType: pawns[1] is null");
+                return;
+            }
+
+            var speakerLabel = speakerPawn.LabelShort ?? "Unknown";
+            var speakerRole = speakerPawn.GetRole() ?? "Unknown";
+            var prompt = talkRequest.Prompt ?? "";
+            
+            sb.Append($"{speakerLabel}({speakerRole}) said to {shortName}: '{prompt}'.");
+            
+            if (settings.PlayerDialogueMode == Settings.PlayerDialogueMode.Manual)
+                sb.Append($"Generate dialogue starting after this. Do not generate any further lines for {speakerLabel}");
+            else if (settings.PlayerDialogueMode == Settings.PlayerDialogueMode.AIDriven)
+            {
+                var playerName = settings.PlayerName ?? "";
+                if (speakerLabel == playerName)
+                {
+                    var mainPawnLabel = mainPawn.LabelShort ?? "Unknown";
                     if (pawns.Count == 2)
-                        sb.Append($"从 {mainPawn.LabelShort} 开始续写多次连续的独白发言以回应 {pawns[1].LabelShort}.");
+                        sb.Append($"从 {mainPawnLabel} 开始续写多次连续的独白发言以回应 {speakerLabel}.");
                     else
-                        sb.Append($"从 {mainPawn.LabelShort} 开始续写多次轮流发言, 但 {pawns[1].LabelShort} 不会参加对话.");
+                        sb.Append($"从 {mainPawnLabel} 开始续写多次轮流发言, 但 {speakerLabel} 不会参加对话.");
+                }
                 else
-                    sb.Append($"从 {mainPawn.LabelShort} 开始续写多次轮流发言");
+                {
+                    var mainPawnLabel = mainPawn.LabelShort ?? "Unknown";
+                    sb.Append($"从 {mainPawnLabel} 开始续写多次轮流发言");
+                }
+            }
         }
         else
         {
             if (pawns.Count == 1)
             {
-                if (talkRequest.Prompt.StartsWith("[群体讨论]"))
+                var prompt = talkRequest.Prompt ?? "";
+                if (prompt.StartsWith("[群体讨论]"))
                     sb.Append($"生成 {shortName} 与其他人群体讨论以下内容的多次轮流发言.");
                 else
                     sb.Append($"生成 {shortName} 连续的多次独白发言, \"name\"字段应该全为 \"{shortName}\".");
@@ -383,9 +421,10 @@ public static class ContextBuilder
                     talkRequest.Prompt = null;
 
                 talkRequest.TalkType = TalkType.Urgent;
+                var mapRoleStr = mainPawn.GetMapRole().ToString()?.ToLower() ?? "unknown";
                 sb.Append(mainPawn.IsSlave || mainPawn.IsPrisoner
                     ? $"从 {shortName} 开始与他人略微焦急紧张的多次轮流发言"
-                    : $"从 {shortName} 开始与他人急迫的多次轮流发言 ({mainPawn.GetMapRole().ToString().ToLower()}/command)");
+                    : $"从 {shortName} 开始与他人急迫的多次轮流发言 ({mapRoleStr}/command)");
             }
             else
             {
@@ -396,7 +435,7 @@ public static class ContextBuilder
                 sb.Append("\n(这人崩溃了,发言不讲逻辑)");
             else if (mainPawn.Downed && !mainPawn.IsBaby())
                 sb.Append("\n(这人倒地了,发言虚弱不清)");
-            else
+            else if (!string.IsNullOrEmpty(talkRequest.Prompt))
                 sb.Append($"\n{talkRequest.Prompt}");
         }
     }

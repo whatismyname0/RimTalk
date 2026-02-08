@@ -47,6 +47,14 @@ public static class PromptService
     {
         var sb = new StringBuilder();
         var name = pawn.LabelShort;
+        
+        // Mark pawns who cannot currently speak
+        var pawnState = Cache.Get(pawn);
+        if (pawnState != null && !pawnState.CanDisplayTalk())
+        {
+            name += "（无法说话）";
+        }
+        
         var title = pawn.story?.title == null ? "" : $"({pawn.story.title})";
         var genderAndAge = Regex.Replace(pawn.MainDesc(false), @"\(\d+\)", "").Trim();
         sb.AppendLine($"{name} {title} ({genderAndAge})");
@@ -275,7 +283,7 @@ public static class PromptService
             if (pawn.IsColonist && !pawn.IsPrisoner && !pawn.IsSlaveOfColony)
                 continue;
 
-            var factionName = pawn.Faction.Name?? "无势力";
+            var factionName = pawn.Faction?.Name ?? "无势力";
 
             if (pawn.IsPrisoner)
             {

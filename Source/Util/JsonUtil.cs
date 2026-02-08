@@ -132,7 +132,7 @@ public static class JsonUtil
         string sanitized = text
             // Full-width punctuation to ASCII
             .Replace("：",":")
-            .Replace("，",",")
+            .Replace("，\n",",\n")
             .Replace("（","(")
             .Replace("）",")")
             .Replace("【", "[")
