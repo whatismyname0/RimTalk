@@ -117,7 +117,7 @@ public class OpenAIClient(
 
             Stream = stream,
             StreamOptions = stream ? new StreamOptions { IncludeUsage = true } : null,
-            // ResponseFormat = new Dictionary<string, string> {{"type", "json_object"}}
+            // ResponseFormat = new ResponseFormat { Type = "json_object" }
         };
 
         return JsonUtil.SerializeToJson(request);

@@ -44,7 +44,14 @@ public class OpenAIRequest
     public StreamOptions StreamOptions { get; set; }
 
     [DataMember(Name = "response_format", EmitDefaultValue = false)]
-    public Dictionary<string, string> ResponseFormat { get; set; }
+    public ResponseFormat ResponseFormat { get; set; }
+}
+
+[DataContract]
+public class ResponseFormat
+{
+    [DataMember(Name = "type")]
+    public string Type { get; set; }
 }
 
 [DataContract]

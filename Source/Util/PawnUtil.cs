@@ -93,7 +93,11 @@ public static class PawnUtil
         {
             StringBuilder sb = new StringBuilder();
 
-            sb.Append("Visitor");
+            if (Compatibility.HospitalityCompatibility.IsHospitalityGuest(pawn))
+                sb.Append("住宿访客");
+            else
+                sb.Append("Visitor");
+
             sb.Append($"({pawn.GetLord()?.LordJob?.GetReport(pawn) ?? ""})");
 
             return sb.ToString();

@@ -151,17 +151,17 @@ public static class ContextHelper
 
         var map = pawn.Map;
 
-        // Limit the number of cells to scan (hard cap).
-        var sameRoomOnly = pawn.GetRoom() is { PsychologicallyOutdoors: false };
-        var cells = GetNearbyCellsRadial(pawn, distance, sameRoomOnly);
-        if (cells.Count > maxCellsToScan)
-            cells = cells.Take(maxCellsToScan).ToList();
-
         var aggs = new Dictionary<string, NearbyAgg>();
         var seenBuildingIds = new HashSet<int>();
 
-        // PRIORITY PASS: Collect all corpses first (no limits)
-        foreach (var cell in cells)
+        // PRIORITY PASS: Collect corpses with expanded range
+        // Indoor (same room) or Outdoor (40 unit radius)
+        var room = pawn.GetRoom();
+        var sameRoomOnly = room is { PsychologicallyOutdoors: false };
+        var corpseSearchDistance = sameRoomOnly ? 100 : 40; // Use large distance for indoor to cover entire room
+        var corpseCells = GetNearbyCellsRadial(pawn, corpseSearchDistance, sameRoomOnly);
+        
+        foreach (var cell in corpseCells)
         {
             var thingsHere = cell.GetThingList(map);
             if (thingsHere == null || thingsHere.Count == 0)
@@ -202,7 +202,11 @@ public static class ContextHelper
             }
         }
 
-        // SECOND PASS: Collect other things with limits
+        // SECOND PASS: Collect other things with original distance limit
+        var cells = GetNearbyCellsRadial(pawn, distance, false);
+        if (cells.Count > maxCellsToScan)
+            cells = cells.Take(maxCellsToScan).ToList();
+
         int processedTotal = 0;
         int processedItems = 0;
 

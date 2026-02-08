@@ -13,6 +13,7 @@ public static class RelationsService
     private const float RivalOpinionThreshold = -20f;
     private const float LoveOpinionThreshold = 60f;
     private const float FuckOpinionThreshold = -60f;
+    
 
     public static string GetRelationsString(Pawn pawn)
     {
@@ -98,6 +99,20 @@ public static class RelationsService
                     labels.Add($"{otherPawn.LabelShort}对我没有特别意见");
                 }
 
+                // Check if this pawn should be skipped due to distance and weak relationship
+                if (!pawn.Position.InHorDistOf(otherPawn.Position, 20f) && directRelations.Count == 0)
+                {
+                    // Check if only Like/Dislike attitudes exist (not Love/Hate)
+                    bool hasOnlyWeakAttitudes = 
+                        (attitudeType == AttitudeType.Like || attitudeType == AttitudeType.Dislike || attitudeType == AttitudeType.None) &&
+                        (reverseAttitudeType == AttitudeType.Like || reverseAttitudeType == AttitudeType.Dislike || reverseAttitudeType == AttitudeType.None);
+                    
+                    if (hasOnlyWeakAttitudes)
+                    {
+                        continue;
+                    }
+                }
+                
                 // Check if this pawn should be skipped due to group attitude
                 // Only check if there are no direct relations and only attitude labels exist
                 if (directRelations.Count == 0 && labels.Count != 0 &&
@@ -250,7 +265,7 @@ public static class RelationsService
                 if (attitudeType != AttitudeType.None)
                 {
                     if (!attitudeCountsToGroup.ContainsKey(attitudeType))
-                        attitudeCountsToGroup[attitudeType] = 1;
+                        attitudeCountsToGroup[attitudeType] = 0;
                     attitudeCountsToGroup[attitudeType]++;
                 }
             }
@@ -265,29 +280,57 @@ public static class RelationsService
                 if (attitudeType != AttitudeType.None)
                 {
                     if (!attitudeCountsFromGroup.ContainsKey(attitudeType))
-                        attitudeCountsFromGroup[attitudeType] = 1;
+                        attitudeCountsFromGroup[attitudeType] = 0;
                     attitudeCountsFromGroup[attitudeType]++;
                 }
             }
             
-            // Check if any attitude meets threshold (pawn to group)
-            foreach (var kvp in attitudeCountsToGroup)
+            // Check positive attitudes (pawn to group)
+            int loveCount = attitudeCountsToGroup.ContainsKey(AttitudeType.Love) ? attitudeCountsToGroup[AttitudeType.Love] : 0;
+            int likeCount = attitudeCountsToGroup.ContainsKey(AttitudeType.Like) ? attitudeCountsToGroup[AttitudeType.Like] : 0;
+            int positiveSum = loveCount + likeCount;
+            
+            if (positiveSum >= threshold)
             {
-                if (kvp.Value >= threshold)
-                {
-                    results.Add((groupType, kvp.Key, false));
-                    break; // Only add one attitude per group
-                }
+                // If equal or love is more, use Love; otherwise use Like
+                AttitudeType positiveAttitude = loveCount >= likeCount ? AttitudeType.Love : AttitudeType.Like;
+                results.Add((groupType, positiveAttitude, false));
             }
             
-            // Check if any attitude meets threshold (group to pawn)
-            foreach (var kvp in attitudeCountsFromGroup)
+            // Check negative attitudes (pawn to group)
+            int hateCount = attitudeCountsToGroup.ContainsKey(AttitudeType.Hate) ? attitudeCountsToGroup[AttitudeType.Hate] : 0;
+            int dislikeCount = attitudeCountsToGroup.ContainsKey(AttitudeType.Dislike) ? attitudeCountsToGroup[AttitudeType.Dislike] : 0;
+            int negativeSum = hateCount + dislikeCount;
+            
+            if (negativeSum >= threshold)
             {
-                if (kvp.Value >= threshold)
-                {
-                    results.Add((groupType, kvp.Key, true));
-                    break; // Only add one attitude per group
-                }
+                // If equal or hate is more, use Hate; otherwise use Dislike
+                AttitudeType negativeAttitude = hateCount >= dislikeCount ? AttitudeType.Hate : AttitudeType.Dislike;
+                results.Add((groupType, negativeAttitude, false));
+            }
+            
+            // Check positive attitudes (group to pawn)
+            int loveCountReverse = attitudeCountsFromGroup.ContainsKey(AttitudeType.Love) ? attitudeCountsFromGroup[AttitudeType.Love] : 0;
+            int likeCountReverse = attitudeCountsFromGroup.ContainsKey(AttitudeType.Like) ? attitudeCountsFromGroup[AttitudeType.Like] : 0;
+            int positiveSumReverse = loveCountReverse + likeCountReverse;
+            
+            if (positiveSumReverse >= threshold)
+            {
+                // If equal or love is more, use Love; otherwise use Like
+                AttitudeType positiveAttitudeReverse = loveCountReverse >= likeCountReverse ? AttitudeType.Love : AttitudeType.Like;
+                results.Add((groupType, positiveAttitudeReverse, true));
+            }
+            
+            // Check negative attitudes (group to pawn)
+            int hateCountReverse = attitudeCountsFromGroup.ContainsKey(AttitudeType.Hate) ? attitudeCountsFromGroup[AttitudeType.Hate] : 0;
+            int dislikeCountReverse = attitudeCountsFromGroup.ContainsKey(AttitudeType.Dislike) ? attitudeCountsFromGroup[AttitudeType.Dislike] : 0;
+            int negativeSumReverse = hateCountReverse + dislikeCountReverse;
+            
+            if (negativeSumReverse >= threshold)
+            {
+                // If equal or hate is more, use Hate; otherwise use Dislike
+                AttitudeType negativeAttitudeReverse = hateCountReverse >= dislikeCountReverse ? AttitudeType.Hate : AttitudeType.Dislike;
+                results.Add((groupType, negativeAttitudeReverse, true));
             }
         }
         
@@ -310,39 +353,65 @@ public static class RelationsService
         var otherPawnGroupType = GetPawnGroupType(otherPawn);
         if (otherPawnGroupType == null) return false;
         
-        // Check if pawn's attitude to otherPawn (forward) matches a group attitude
-        if (attitudeType != AttitudeType.None)
+        // Find group attitudes for this pawn's group
+        AttitudeType? forwardGroupAttitude = null;  // pawn -> group
+        AttitudeType? reverseGroupAttitude = null;  // group -> pawn
+        
+        foreach (var (groupType, groupAttitude, isReverse) in groupAttitudes)
         {
-            foreach (var (groupType, groupAttitude, isReverse) in groupAttitudes)
+            if (groupType == otherPawnGroupType)
             {
-                if (groupType == otherPawnGroupType && (groupAttitude == attitudeType || (groupAttitude == AttitudeType.Hate && attitudeType == AttitudeType.Dislike) || (groupAttitude == AttitudeType.Love && attitudeType == AttitudeType.Like)) && !isReverse)
-                {
-                    // Skip if this is the only label
-                    if (reverseAttitudeType == AttitudeType.None)
-                        return true;
-                    // Also skip if the reverse attitude is also in group attitudes
-                    foreach (var (groupType2, groupAttitude2, isReverse2) in groupAttitudes)
-                    {
-                        if (groupType2 == otherPawnGroupType && (groupAttitude2 == reverseAttitudeType || (groupAttitude2 == AttitudeType.Hate && reverseAttitudeType == AttitudeType.Dislike) || (groupAttitude2 == AttitudeType.Love && reverseAttitudeType == AttitudeType.Like)) && isReverse2)
-                            return true;
-                    }
-                }
+                if (!isReverse)
+                    forwardGroupAttitude = groupAttitude;
+                else
+                    reverseGroupAttitude = groupAttitude;
             }
         }
         
-        // Check if otherPawn's attitude to pawn (reverse) matches a group attitude
-        if (reverseAttitudeType != AttitudeType.None)
+        // Only skip if BOTH forward and reverse attitudes match (or are similar to) the group attitudes
+        bool forwardMatches = false;
+        bool reverseMatches = false;
+        
+        // Check forward match (pawn -> otherPawn vs pawn -> group)
+        if (forwardGroupAttitude.HasValue && attitudeType != AttitudeType.None)
         {
-            foreach (var (groupType, groupAttitude, isReverse) in groupAttitudes)
-            {
-                if (groupType == otherPawnGroupType && (groupAttitude == reverseAttitudeType || (groupAttitude == AttitudeType.Hate && reverseAttitudeType == AttitudeType.Dislike) || (groupAttitude == AttitudeType.Love && reverseAttitudeType == AttitudeType.Like)) && isReverse)
-                {
-                    // Skip if this is the only label
-                    if (attitudeType == AttitudeType.None)
-                        return true;
-                }
-            }
+            forwardMatches = IsSimilarAttitude(attitudeType, forwardGroupAttitude.Value);
         }
+        else if (!forwardGroupAttitude.HasValue && attitudeType == AttitudeType.None)
+        {
+            // Both group attitude and individual attitude are None - this is a match
+            forwardMatches = true;
+        }
+        
+        // Check reverse match (otherPawn -> pawn vs group -> pawn)
+        if (reverseGroupAttitude.HasValue && reverseAttitudeType != AttitudeType.None)
+        {
+            reverseMatches = IsSimilarAttitude(reverseAttitudeType, reverseGroupAttitude.Value);
+        }
+        else if (!reverseGroupAttitude.HasValue && reverseAttitudeType == AttitudeType.None)
+        {
+            // Both group attitude and individual attitude are None - this is a match
+            reverseMatches = true;
+        }
+        
+        // Only skip if both directions match their respective group attitudes
+        return forwardMatches && reverseMatches;
+    }
+    
+    private static bool IsSimilarAttitude(AttitudeType attitude1, AttitudeType attitude2)
+    {
+        // Exact match
+        if (attitude1 == attitude2) return true;
+        
+        // Both positive (Love and Like are similar)
+        if ((attitude1 == AttitudeType.Love || attitude1 == AttitudeType.Like) &&
+            (attitude2 == AttitudeType.Love || attitude2 == AttitudeType.Like))
+            return true;
+        
+        // Both negative (Hate and Dislike are similar)
+        if ((attitude1 == AttitudeType.Hate || attitude1 == AttitudeType.Dislike) &&
+            (attitude2 == AttitudeType.Hate || attitude2 == AttitudeType.Dislike))
+            return true;
         
         return false;
     }

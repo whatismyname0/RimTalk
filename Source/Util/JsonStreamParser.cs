@@ -33,20 +33,8 @@ public class JsonStreamParser<T> where T : class
 
             string jsonObj = text.Substring(objStart, objEnd - objStart + 1);
             
-            // Process and potentially split into multiple objects
+            // Fix unquoted property names and other formatting issues
             string processedJson = JsonUtil.ProcessResponse(jsonObj);
-            
-            // If ProcessResponse returned multiple objects, put them back in buffer for re-parsing
-            if (processedJson.Length > jsonObj.Length * 2 || CountBraces(processedJson) > 1)
-            {
-                // Insert processed JSON back into buffer at current position
-                _buffer.Remove(0, objEnd + 1);
-                _buffer.Insert(0, processedJson);
-                text = _buffer.ToString();
-                searchStart = 0;
-                lastSuccessfulEnd = 0;
-                continue;
-            }
 
             try
             {
@@ -58,8 +46,8 @@ public class JsonStreamParser<T> where T : class
             }
             catch (Exception ex)
             {
-                // Log the error and continue searching for next valid object
-                Logger.Warning($"Failed to parse JSON object in stream: {ex.Message}\nJSON: {processedJson}");
+                // Log detailed error information for debugging
+                Logger.Warning($"Failed to parse JSON object in stream: {ex.Message}\nOriginal JSON: {jsonObj}\nProcessed JSON: {processedJson}");
             }
 
             searchStart = objEnd + 1;

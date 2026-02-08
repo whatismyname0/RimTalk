@@ -53,20 +53,20 @@ public static class Describer
     
     public static string Resistance(float value)
     {
-        if (value <= 0f) return "Completely broken, ready to join";
-        if (value < 2f) return "Barely resisting, close to giving in";
-        if (value < 6f) return "Weakened, but still cautious";
-        if (value < 12f) return "Strong-willed, requires effort";
-        return "Extremely defiant, will take a long time";
+        if (value <= 0f) return "这名囚犯的抵抗意志已经完全崩溃，随时准备加入殖民地";
+        if (value < 2f) return "这名囚犯几乎放弃了抵抗，内心已经开始动摇，很快就会屈服";
+        if (value < 6f) return "这名囚犯的抵抗意志已经被削弱，但仍保持着警惕和戒备";
+        if (value < 12f) return "这名囚犯意志坚定，需要花费相当大的努力才能招募";
+        return "这名囚犯极度顽固反抗，招募过程将会非常漫长而艰难";
     }
 
     public static string Will(float value)
     {
-        if (value <= 0f) return "No will left, ready for slavery";
-        if (value < 2f) return "Weak-willed, easy to enslave";
-        if (value < 6f) return "Moderate will, may resist a little";
-        if (value < 12f) return "Strong will, difficult to enslave";
-        return "Unyielding, very hard to enslave";
+        if (value <= 0f) return "这名囚犯已经没有任何意志可言，完全准备好被奴役";
+        if (value < 2f) return "这名囚犯意志薄弱，很容易就能被驯化成奴隶";
+        if (value < 6f) return "这名囚犯还有一些意志力，可能会稍作抵抗";
+        if (value < 12f) return "这名囚犯意志坚强，奴役过程会比较困难";
+        return "这名囚犯意志顽强不屈，极难被驯化为奴隶";
     }
 
     public static string Suppression(float value)

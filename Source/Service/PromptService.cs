@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using RimTalk.API;
 using RimTalk.Data;
 using RimTalk.Util;
 using RimWorld;
+using RimWorld.Planet;
 using Verse;
 using Verse.AI.Group;
 using Cache = RimTalk.Data.Cache;
@@ -91,7 +93,7 @@ public static class PromptService
 
         var personality = Cache.Get(pawn).Personality;
         if (personality != null)
-            sb.AppendLine($"心理特质: {personality}");
+            sb.AppendLine($"角色描述: {personality}");
 
         // Stop here for invaders
         if (pawn.IsEnemy())
@@ -135,13 +137,17 @@ public static class PromptService
 
         // Time and weather (apply environment hooks with injections)
         if (contextSettings.IncludeTime)
-            sb.Append($"\nTime: {ApplyEnvironmentWithHook(mainPawn.Map, ContextCategories.Environment.Time, gameData.Hour12HString)}");
+            sb.Append($"\n现在时间: {ApplyEnvironmentWithHook(mainPawn.Map, ContextCategories.Environment.Time, gameData.Hour12HString)}");
         if (contextSettings.IncludeDate)
-            sb.Append($"\nToday: {ApplyEnvironmentWithHook(mainPawn.Map, ContextCategories.Environment.Date, gameData.DateString)}");
+            sb.Append($"\n现在日期: {ApplyEnvironmentWithHook(mainPawn.Map, ContextCategories.Environment.Date, gameData.DateString)}");
         if (contextSettings.IncludeSeason)
-            sb.Append($"\nSeason: {ApplyEnvironmentWithHook(mainPawn.Map, ContextCategories.Environment.Season, gameData.SeasonString)}");
+            sb.Append($"\n现在季节: {ApplyEnvironmentWithHook(mainPawn.Map, ContextCategories.Environment.Season, gameData.SeasonString)}");
         if (contextSettings.IncludeWeather)
-            sb.Append($"\nWeather: {ApplyEnvironmentWithHook(mainPawn.Map, ContextCategories.Environment.Weather, gameData.WeatherString)}");
+            sb.Append($"\n现在天气: {ApplyEnvironmentWithHook(mainPawn.Map, ContextCategories.Environment.Weather, gameData.WeatherString)}");
+        
+        // Temperature
+        var outdoorTemp = mainPawn.Map.mapTemperature.OutdoorTemp;
+        sb.Append($"\n室外温度: {ApplyEnvironmentWithHook(mainPawn.Map, ContextCategories.Environment.Temperature, $"{outdoorTemp:F1}°C")}");
 
         // Location
         ContextBuilder.BuildLocationContext(sb, contextSettings, mainPawn);
@@ -152,10 +158,175 @@ public static class PromptService
         if (contextSettings.IncludeWealth)
             sb.Append($"\nWealth: {ApplyEnvironmentWithHook(mainPawn.Map, ContextCategories.Environment.Wealth, Describer.Wealth(mainPawn.Map.wealthWatcher.WealthTotal))}");
 
+        // Player Caravans information
+        var caravansInfo = BuildPlayerCaravansInfo();
+        if (!string.IsNullOrEmpty(caravansInfo))
+            sb.Append($"\n{caravansInfo}");
+
+        var otherPawnInfo = BuildOtherPawnInfo();
+        if (!string.IsNullOrEmpty(otherPawnInfo))
+            sb.Append($"\n{otherPawnInfo}");
+
         if (AIService.IsFirstInstruction())
             sb.Append($"\nin {Constant.Lang}");
 
         talkRequest.Prompt = sb.ToString();
+    }
+
+    /// <summary>构建所有玩家远行队的信息。</summary>
+    private static string BuildPlayerCaravansInfo()
+    {
+        var caravans = Find.WorldObjects.Caravans?.Where(c => c.IsPlayerControlled).ToList();
+        if (caravans == null || caravans.Count == 0)
+            return string.Empty;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("\nCaravans of Player Faction:{");
+
+        for (int i = 0; i < caravans.Count; i++)
+        {
+            var caravan = caravans[i];
+            
+            // 找到身价最高的殖民者作为远行队名称
+            var colonists = caravan.PawnsListForReading.Where(p => p.IsColonist).ToList();
+            Pawn leader = colonists.OrderByDescending(p => p.MarketValue).FirstOrDefault();
+            string caravanName = leader != null ? $"{leader.LabelShort}的远行队" : $"Caravan {i + 1}";
+            
+            sb.AppendLine($"{caravanName}:{{");
+
+            // 1. 成员及其身份
+            var members = new List<string>();
+            foreach (var pawn in caravan.PawnsListForReading)
+            {
+                string identity = "未知";
+                if (pawn.IsColonist)
+                    identity = "殖民者";
+                else if (pawn.IsPrisoner)
+                    identity = "囚犯";
+                else if (pawn.IsSlaveOfColony)
+                    identity = "奴隶";
+                else if (pawn.RaceProps.Animal)
+                    identity = "动物";
+                
+                members.Add($"{pawn.LabelShort}（{identity}）");
+            }
+            sb.AppendLine($"  Members: [{string.Join(", ", members)}],");
+
+            // 2. 目的地
+            if (caravan.pather?.Destination != null && caravan.pather.Destination >= 0)
+            {
+                int destTile = caravan.pather.Destination;
+                var destObject = Find.WorldObjects.AllWorldObjects.FirstOrDefault(wo => wo.Tile == destTile);
+                string destName = destObject != null ? destObject.Label : $"Tile {destTile}";
+                sb.AppendLine($"  Destination: {destName},");
+
+                // 3. 预计抵达时间
+                if (caravan.pather.Moving)
+                {
+                    int ticksToArrive = CaravanArrivalTimeEstimator.EstimatedTicksToArrive(caravan, true);
+                    float daysToArrive = ticksToArrive / 60000f;
+                    sb.AppendLine($"  Estimated arrival: {daysToArrive:F1} days,");
+                }
+            }
+            else
+            {
+                sb.AppendLine("  Destination: None,");
+            }
+
+            // 4. 剩余食物天数
+            try
+            {
+                var foodData = caravan.DaysWorthOfFood;
+                if (foodData.days > 0)
+                {
+                    sb.AppendLine($"  Food remaining: {foodData.days:F1} days}}");
+                }
+                else
+                {
+                    sb.AppendLine("  Food remaining: Ran out}");
+                }
+            }
+            catch
+            {
+                sb.AppendLine("  Food remaining: Unknown}");
+            }
+        }
+        sb.AppendLine("}");
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string BuildOtherPawnInfo()
+    {
+        var map = Find.CurrentMap;
+        if (map == null)
+            return string.Empty;
+
+        var prisoners = new Dictionary<string, int>();
+        var slaves = new Dictionary<string, int>();
+        var enemies = new Dictionary<string, int>();
+        var visitors = new Dictionary<string, int>();
+
+        foreach (var pawn in map.mapPawns.AllPawnsSpawned)
+        {
+            if (pawn == null || (!pawn.RaceProps.Humanlike && !pawn.RaceProps.ToolUser))
+                continue;
+
+            // 排除玩家殖民者
+            if (pawn.IsColonist && !pawn.IsPrisoner && !pawn.IsSlaveOfColony)
+                continue;
+
+            var factionName = pawn.Faction.Name?? "无势力";
+
+            if (pawn.IsPrisoner)
+            {
+                if (!prisoners.ContainsKey(factionName))
+                    prisoners[factionName] = 0;
+                prisoners[factionName]++;
+            }
+            else if (pawn.IsSlaveOfColony)
+            {
+                if (!slaves.ContainsKey(factionName))
+                    slaves[factionName] = 0;
+                slaves[factionName]++;
+            }
+            else if (pawn.HostileTo(Faction.OfPlayer))
+            {
+                if (!enemies.ContainsKey(factionName))
+                    enemies[factionName] = 0;
+                enemies[factionName]++;
+            }
+            else if (pawn.Faction != Faction.OfPlayer)
+            {
+                if (!visitors.ContainsKey(factionName))
+                    visitors[factionName] = 0;
+                visitors[factionName]++;
+            }
+        }
+
+        if (prisoners.Count == 0 && slaves.Count == 0 && enemies.Count == 0 && visitors.Count == 0)
+            return string.Empty;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("当前地图其他势力角色计数:{");
+
+        var sections = new List<(string title, Dictionary<string, int> data)>();
+        if (prisoners.Count > 0) sections.Add(("囚犯", prisoners));
+        if (slaves.Count > 0) sections.Add(("奴隶", slaves));
+        if (enemies.Count > 0) sections.Add(("敌人", enemies));
+        if (visitors.Count > 0) sections.Add(("访客及住宿访客", visitors));
+
+        for (int i = 0; i < sections.Count; i++)
+        {
+            var (title, data) = sections[i];
+            sb.AppendLine($"  {title}:{{");
+            foreach (var kvp in data)
+                sb.AppendLine($"    {kvp.Key}: {kvp.Value}人,");
+            var ending = i == sections.Count - 1 ? "  }" : "  },";
+            sb.AppendLine(ending);
+        }
+
+        sb.AppendLine("}");
+        return sb.ToString().TrimEnd();
     }
     
     /// <summary>

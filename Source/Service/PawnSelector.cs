@@ -10,9 +10,6 @@ namespace RimTalk.Service;
 
 public class PawnSelector
 {
-    private const float HearingRange = 10f;
-    private const float ViewingRange = 20f;
-
     public enum DetectionType
     {
         Hearing,
@@ -22,10 +19,14 @@ public class PawnSelector
     private static List<Pawn> GetNearbyPawnsInternal(Pawn pawn1, Pawn pawn2 = null,
         DetectionType detectionType = DetectionType.Hearing, bool onlyTalkable = false, int maxResults = 50)
     {
-        float baseRange = detectionType == DetectionType.Hearing ? HearingRange : ViewingRange;
+        const float OutdoorRange = 40f;
         PawnCapacityDef capacityDef = detectionType == DetectionType.Hearing
             ? PawnCapacityDefOf.Hearing
             : PawnCapacityDefOf.Sight;
+
+        // Check if pawn1 is indoors (not psychologically outdoors)
+        var pawn1Room = pawn1.GetRoom();
+        bool pawn1Indoors = pawn1Room is { PsychologicallyOutdoors: false };
 
         return Cache.Keys
             .Where(p => p != pawn1 && p != pawn2)
@@ -33,17 +34,36 @@ public class PawnSelector
             .Where(p => p.health.capacities.GetLevel(capacityDef) > 0.0)
             .Where(p =>
             {
-                var room = p.GetRoom();
                 var capacityLevel = p.health.capacities.GetLevel(capacityDef);
-                var detectionDistance = baseRange * capacityLevel;
-
-                bool nearPawn1 = room == pawn1.GetRoom() &&
-                                 p.Position.InHorDistOf(pawn1.Position, detectionDistance);
+                
+                bool nearPawn1;
+                if (pawn1Indoors)
+                {
+                    // Indoor: same room only
+                    nearPawn1 = p.GetRoom() == pawn1Room;
+                }
+                else
+                {
+                    // Outdoor: within 40 unit radius
+                    nearPawn1 = p.Position.InHorDistOf(pawn1.Position, OutdoorRange * capacityLevel);
+                }
 
                 if (pawn2 == null) return nearPawn1;
 
-                bool nearPawn2 = room == pawn2.GetRoom() &&
-                                 p.Position.InHorDistOf(pawn2.Position, detectionDistance);
+                bool nearPawn2;
+                var pawn2Room = pawn2.GetRoom();
+                bool pawn2Indoors = pawn2Room is { PsychologicallyOutdoors: false };
+                
+                if (pawn2Indoors)
+                {
+                    // Indoor: same room only
+                    nearPawn2 = p.GetRoom() == pawn2Room;
+                }
+                else
+                {
+                    // Outdoor: within 40 unit radius
+                    nearPawn2 = p.Position.InHorDistOf(pawn2.Position, OutdoorRange * capacityLevel);
+                }
 
                 return nearPawn1 || nearPawn2;
             })

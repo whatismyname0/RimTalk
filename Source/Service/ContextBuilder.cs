@@ -20,6 +20,18 @@ public static class ContextBuilder
     private static readonly MethodInfo VisibleHediffsMethod =
         AccessTools.Method(typeof(HealthCardUtility), "VisibleHediffs");
 
+    private static string GetSkillLevelDescription(int level)
+    {
+        if (level <= 0) return "一窍不通";
+        if (level <= 3) return "陌生";
+        if (level <= 6) return "入门级";
+        if (level <= 10) return "称职";
+        if (level <= 14) return "十分熟练";
+        if (level <= 17) return "专家级";
+        if (level <= 19) return "闻名遐迩";
+        return "举世罕见";
+    }
+
     public static string GetRaceContext(Pawn pawn, PromptService.InfoLevel infoLevel)
     {
         var contextSettings = Settings.Get().Context;
@@ -174,7 +186,7 @@ public static class ContextBuilder
         var skills = pawn.skills?.skills;
         if (skills?.Any() == true)
         {
-            var skillsJson = string.Join(",", skills.Select(s => $"{s.def.label}: {s.Level}级"));
+            var skillsJson = string.Join(",", skills.Select(s => $"{s.def.label}: {GetSkillLevelDescription(s.Level)}"));
             return $"技能等级: {{ {skillsJson} }}";
         }
         return null;
@@ -310,13 +322,29 @@ public static class ContextBuilder
             hasAny = true;
         }
 
-        var apparelLabels = pawn.apparel?.WornApparel?.Select(a => a.LabelCap);
+        var wornApparel = pawn.apparel?.WornApparel;
+        var apparelLabels = wornApparel?.Select(a => a.LabelCap);
         if (apparelLabels?.Any() == true)
         {
             if (hasAny) sb.Append(",\n");
             var apparelArray = string.Join(",", apparelLabels);
             sb.Append($"衣着: [{apparelArray}]");
             hasAny = true;
+        }
+
+        // Check if no clothing in OnSkin and Shell layers
+        if (pawn.apparel != null)
+        {
+            var hasOnSkinOrShell = wornApparel?.Any(a => 
+                a.def.apparel.layers.Contains(ApparelLayerDefOf.OnSkin) || 
+                a.def.apparel.layers.Contains(ApparelLayerDefOf.Shell)) == true;
+            
+            if (!hasOnSkinOrShell)
+            {
+                if (hasAny) sb.Append(",\n");
+                sb.Append("未穿衣服");
+                hasAny = true;
+            }
         }
 
         sb.Append("}");
@@ -391,7 +419,7 @@ public static class ContextBuilder
         // Apply pawn hooks (location is now a pawn property)
         locationInfo = ContextHookRegistry.ApplyPawnHooks(
             ContextCategories.Pawn.Location, mainPawn, locationInfo);
-        sb.Append($"\nLocation: {locationInfo}");
+        sb.Append($"\n对话地点: {locationInfo}");
     }
 
     public static void BuildEnvironmentContext(StringBuilder sb, ContextSettings contextSettings, Pawn mainPawn)
@@ -403,7 +431,7 @@ public static class ContextBuilder
             {
                 var value = ContextHookRegistry.ApplyPawnHooks(
                     ContextCategories.Pawn.Terrain, mainPawn, terrain.LabelCap);
-                sb.Append($"\nTerrain: {value}");
+                sb.Append($"\n地面材质: {value}");
             }
         }
 
@@ -415,7 +443,7 @@ public static class ContextBuilder
                 var beautySum = nearbyCells.Sum(c => BeautyUtility.CellBeauty(c, mainPawn.Map));
                 var value = ContextHookRegistry.ApplyPawnHooks(
                     ContextCategories.Pawn.Beauty, mainPawn, Describer.Beauty(beautySum / nearbyCells.Count));
-                sb.Append($"\nCellBeauty: {value}");
+                sb.Append($"\n美观度: {value}");
             }
         }
 
@@ -425,7 +453,7 @@ public static class ContextBuilder
             var value = ContextHookRegistry.ApplyPawnHooks(
                 ContextCategories.Pawn.Cleanliness, mainPawn,
                 Describer.Cleanliness(pawnRoom.GetStat(RoomStatDefOf.Cleanliness)));
-            sb.Append($"\nCleanliness: {value}");
+            sb.Append($"\n清洁度: {value}");
         }
 
         if (contextSettings.IncludeSurroundings)
@@ -435,7 +463,7 @@ public static class ContextBuilder
             {
                 var value = ContextHookRegistry.ApplyPawnHooks(
                     ContextCategories.Pawn.Surroundings, mainPawn, surroundingsText);
-                sb.Append("\nSurroundings:\n");
+                sb.Append("\n周围物体:\n");
                 sb.Append(value);
             }
         }
@@ -546,10 +574,7 @@ public static class ContextBuilder
         recentItems = recentItems.OrderByDescending(item => item.ticksAgo).ToList();
 
         // If infoLevel is Normal or Short, limit to 5 most recent items
-        if (infoLevel <= PromptService.InfoLevel.Normal)
-            recentItems = recentItems.TakeLast(8).ToList();
-        else
-            recentItems = recentItems.TakeLast(24).ToList();
+        recentItems = recentItems.TakeLast(8).ToList();
 
         var sb = new StringBuilder();
         sb.Append("Recent Actions (chronological order, oldest to newest):\n{");
