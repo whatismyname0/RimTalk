@@ -49,11 +49,7 @@ public static class PromptService
         var name = pawn.LabelShort;
         
         // Mark pawns who cannot currently speak
-        var pawnState = Cache.Get(pawn);
-        if (pawnState != null && !pawnState.CanDisplayTalk())
-        {
-            name += "（无法说话）";
-        }
+        name += ContextHelper.GetState(pawn);
         
         var title = pawn.story?.title == null ? "" : $"({pawn.story.title})";
         var genderAndAge = Regex.Replace(pawn.MainDesc(false), @"\(\d+\)", "").Trim();

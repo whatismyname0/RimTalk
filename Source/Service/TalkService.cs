@@ -65,7 +65,7 @@ public static class TalkService
             .Concat(nearbyPawns.Where(p =>
             {
                 var pawnState = Cache.Get(p);
-                return pawnState.CanDisplayTalk() && pawnState.TalkResponses.Empty();
+                return pawnState.TalkResponses.Empty();
             }))
             .Distinct()
             .Take(settings.Context.MaxPawnContextCount)

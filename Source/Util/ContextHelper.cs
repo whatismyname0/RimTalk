@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using RimTalk.Data;
 using RimWorld;
 using Verse;
 using static RimTalk.Service.PromptService;
@@ -58,7 +59,14 @@ public static class ContextHelper
             ? $"{pawn.def.LabelCap.RawText} - {pawn.genes.XenotypeLabel}"
             : pawn.def.LabelCap.RawText;
 
-        return $"{pawn.LabelShort}:\n{{\n   Age:{pawn.ageTracker.AgeBiologicalYears},\n Gender:{pawn.gender.GetLabel()},\n  Role:{pawn.GetRole(true)},\n    Race:{race},\n  Now doing:{PawnUtil.GetPawnActivity(pawn, null, true)}\n}}";
+        return $"{pawn.LabelShort}{GetState(pawn)}:\n{{\n   Age:{pawn.ageTracker.AgeBiologicalYears},\n Gender:{pawn.gender.GetLabel()},\n  Role:{pawn.GetRole(true)},\n    Race:{race},\n  Now doing:{PawnUtil.GetPawnActivity(pawn, null, true)}\n}}";
+    }
+
+    public static string GetState(Pawn pawn)
+    {
+        if (pawn.Dead) return " (已死亡)";
+        if (!Cache.Get(pawn).CanDisplayTalk()) return " (无法说话)";
+        return "";
     }
 
     public static bool IsWall(Thing thing)
