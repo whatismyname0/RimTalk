@@ -35,6 +35,7 @@ public static class VariableDefinitions
         RootTypeMap["lang"] = typeof(string);
         RootTypeMap["prompt"] = typeof(string);
         RootTypeMap["context"] = typeof(string);
+        RootTypeMap["settings"] = typeof(RimTalkSettings);
         RootTypeMap["json"] = typeof(ScriptObject);
         RootTypeMap["chat"] = typeof(ScriptObject);
 
@@ -67,7 +68,8 @@ public static class VariableDefinitions
             ("recipient", "The character being spoken to (if any)"),
             ("pawns", "List of all pawns in the dialogue"),
             ("map", "The current map object"),
-            ("ctx", "The full prompt context object")
+            ("ctx", "The full prompt context object"),
+            ("settings", "RimTalk mod settings")
         };
 
         dict["RimTalk.ScribanVar.Category.Context".Translate()] = new()
@@ -79,6 +81,12 @@ public static class VariableDefinitions
             ("ctx.PawnContext", "Formatted string describing the pawn"),
             ("ctx.UserPrompt", "The raw prompt from the user (if any)"),
             ("ctx.IsMonologue", "True if this is a monologue"),
+            ("ctx.prompt", "Alias of ctx.DialoguePrompt"),
+            ("ctx.context", "Alias of ctx.PawnContext"),
+            ("ctx.history", "Alias of chat.history"),
+            ("ctx.talk_type", "Alias of ctx.TalkType"),
+            ("ctx.pawn_count", "Count of ctx.AllPawns"),
+            ("ctx.map_id", "Map uniqueID")
         };
         
         // 3.5 Game Static Classes
@@ -93,13 +101,9 @@ public static class VariableDefinitions
         dict["RimTalk.ScribanVar.Category.System".Translate()] = new()
         {
             ("lang", "Active native language name"),
-            ("hour", "Current hour (0-23)"),
-            ("day", "Day of quadrum (1-15)"),
-            ("quadrum", "Current quadrum (Aprimay, Jugust, Septober, Decembary)"),
-            ("year", "Current year (e.g. 5500)"),
-            ("season", "Current season (Spring, Summer, Fall, Winter)"),
             ("json.format", "JSON output instructions"),
-            ("chat.history", "Full conversation history (Role: Message)")
+            ("chat.history", "Full alternating history (Raw)"),
+            ("chat.history_simplified", "History with AI JSON parsed and tags removed")
         };
 
         // 5. Mod-added variables from the API

@@ -1,4 +1,7 @@
+using System;
+using System.Linq;
 using RimTalk.Data;
+using RimTalk.Prompt;
 using RimTalk.Util;
 using UnityEngine;
 using Verse;
@@ -11,18 +14,45 @@ public partial class Settings
     {
         RimTalkSettings settings = Get();
 
+        bool isSimpleMode = !settings.UseAdvancedPromptMode;
+
+        PromptEntry baseEntry = null;
+        string currentContent;
+
+        if (isSimpleMode)
+        {
+            currentContent = settings.SimpleModeInstruction;
+            if (string.IsNullOrWhiteSpace(currentContent))
+            {
+                currentContent = Constant.DefaultInstruction;
+                settings.SimpleModeInstruction = currentContent;
+            }
+        }
+        else
+        {
+            var manager = PromptManager.Instance;
+            manager.EnsureInitialized();
+            var activePreset = manager.GetActivePreset();
+            baseEntry = GetOrCreateBaseInstructionEntry(activePreset);
+            currentContent = baseEntry?.Content ?? Constant.DefaultInstruction;
+
+            if (_aiInstructionPresetId != (activePreset?.Id ?? ""))
+            {
+                _textAreaInitialized = false;
+                _aiInstructionPresetId = activePreset?.Id ?? "";
+            }
+        }
+
         if (!_textAreaInitialized)
         {
-            _textAreaBuffer = string.IsNullOrWhiteSpace(settings.CustomInstruction)
-                ? Constant.DefaultInstruction
-                : settings.CustomInstruction;
+            _textAreaBuffer = currentContent;
             _textAreaInitialized = true;
         }
 
         var activeConfig = settings.GetActiveConfig();
         var modelName = activeConfig?.SelectedModel ?? "N/A";
         var aiInstructionPrompt = "RimTalk.Settings.AIInstructionPrompt".Translate(modelName);
-        
+
         float textHeight = Text.CalcHeight(aiInstructionPrompt,
             listingStandard.ColumnWidth - (showAdvancedSwitch ? 180f : 0f));
         float headerHeight = Mathf.Max(textHeight, 30f);
@@ -38,7 +68,12 @@ public partial class Settings
             {
                 Find.WindowStack.Add(Dialog_MessageBox.CreateConfirmation(
                     "RimTalk.Settings.AdvancedModeWarning".Translate(),
-                    () => settings.UseAdvancedPromptMode = true));
+                    () =>
+                    {
+                        settings.UseAdvancedPromptMode = true;
+                        _textAreaInitialized = false;
+                        _aiInstructionPresetId = "";
+                    }));
             }
 
             Rect labelRect = new Rect(headerRect.x, headerRect.y, headerRect.width - buttonWidth - 10f,
@@ -52,7 +87,7 @@ public partial class Settings
         {
             Widgets.Label(headerRect, aiInstructionPrompt);
         }
-        
+
         listingStandard.Gap(6f);
 
         // Context information tip
@@ -63,7 +98,7 @@ public partial class Settings
         GUI.color = Color.white;
         Text.Font = GameFont.Small;
         listingStandard.Gap(6f);
-        
+
         // Warning about rate limits
         Text.Font = GameFont.Tiny;
         GUI.color = Color.yellow;
@@ -113,12 +148,29 @@ public partial class Settings
                     _aiInstructionScrollPos.y = cursorY + 25f - textAreaHeight;
             }
         }
+
         Widgets.EndScrollView();
 
         if (newInstruction != _textAreaBuffer)
         {
             _textAreaBuffer = newInstruction;
-            settings.CustomInstruction = newInstruction == Constant.DefaultInstruction ? "" : newInstruction;
+
+            // Write back to correct target
+            if (isSimpleMode)
+            {
+                settings.SimpleModeInstruction = newInstruction;
+                var manager = PromptManager.Instance;
+                var activePreset = manager.GetActivePreset();
+                var activeBaseEntry = GetOrCreateBaseInstructionEntry(activePreset);
+                if (activeBaseEntry != null)
+                {
+                    activeBaseEntry.Content = newInstruction;
+                }
+            }
+            else if (baseEntry != null)
+            {
+                baseEntry.Content = newInstruction;
+            }
         }
 
         listingStandard.Gap(6f);
@@ -126,10 +178,45 @@ public partial class Settings
         Rect resetButtonRect = listingStandard.GetRect(30f);
         if (Widgets.ButtonText(resetButtonRect, "RimTalk.Settings.ResetToDefault".Translate()))
         {
-            settings.CustomInstruction = "";
             _textAreaBuffer = Constant.DefaultInstruction;
-        }
 
-        listingStandard.Gap(10f);
+            if (isSimpleMode)
+            {
+                settings.SimpleModeInstruction = Constant.DefaultInstruction;
+                // Also update active preset
+                var manager = PromptManager.Instance;
+                var activePreset = manager.GetActivePreset();
+                var activeBaseEntry = GetOrCreateBaseInstructionEntry(activePreset);
+                if (activeBaseEntry != null)
+                {
+                    activeBaseEntry.Content = Constant.DefaultInstruction;
+                }
+            }
+
+            listingStandard.Gap(10f);
+        }
+    }
+
+    private static PromptEntry GetOrCreateBaseInstructionEntry(PromptPreset preset)
+    {
+        if (preset == null) return null;
+
+        var entry = preset.Entries.FirstOrDefault(e =>
+            string.Equals(e.Name, "Base Instruction", StringComparison.OrdinalIgnoreCase));
+        if (entry != null) return entry;
+
+        entry = preset.Entries.FirstOrDefault(e =>
+            e.Role == PromptRole.System && e.Position == PromptPosition.Relative);
+        if (entry != null) return entry;
+
+        entry = new PromptEntry
+        {
+            Name = "Base Instruction",
+            Role = PromptRole.System,
+            Position = PromptPosition.Relative,
+            Content = Constant.DefaultInstruction
+        };
+        preset.Entries.Insert(0, entry);
+        return entry;
     }
 }

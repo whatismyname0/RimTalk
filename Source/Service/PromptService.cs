@@ -45,7 +45,8 @@ public static class PromptService
     {
         var sb = new StringBuilder();
         var name = pawn.LabelShort;
-        var title = pawn.story?.title == null ? "" : $"({pawn.story.title})";
+        var pawnTitle = pawn.GetTitle();
+        var title = string.IsNullOrWhiteSpace(pawnTitle) ? "" : $"({pawnTitle})";
         var genderAndAge = Regex.Replace(pawn.MainDesc(false), @"\(\d+\)", "").Trim();
         sb.AppendLine($"{name} {title} ({genderAndAge})");
 
@@ -83,7 +84,7 @@ public static class PromptService
         // Each section applies hooks via AppendWithHook
         AppendWithHook(sb, pawn, ContextCategories.Pawn.Health, ContextBuilder.GetHealthContext(pawn, infoLevel));
 
-        var personality = Cache.Get(pawn).Personality;
+        var personality = Cache.Get(pawn)?.Personality;
         if (personality != null)
             sb.AppendLine($"Personality: {personality}");
 

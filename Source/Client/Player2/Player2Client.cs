@@ -108,28 +108,31 @@ public class Player2Client : IAIClient
 
     private string BuildRequestJson(List<(Role role, string message)> prefixMessages, List<(Role role, string message)> messages, bool stream)
     {
-        var allMessages = new List<Message>();
-        
-        // Add prefix messages with their original roles
-        if (prefixMessages != null)
-        {
-            allMessages.AddRange(prefixMessages.Select(m => new Message
-            {
-                Role = RoleToString(m.role),
-                Content = m.message
-            }));
-        }
+        var rawMessages = new List<(Role role, string message)>();
+        if (prefixMessages != null) rawMessages.AddRange(prefixMessages);
+        if (messages != null) rawMessages.AddRange(messages);
 
-        // Add conversation messages
-        allMessages.AddRange(messages.Select(m => new Message
+        var mergedMessages = new List<Message>();
+        foreach (var m in rawMessages)
         {
-            Role = RoleToString(m.role),
-            Content = m.message
-        }));
+            var roleStr = RoleToString(m.role);
+            if (mergedMessages.Count > 0 && mergedMessages.Last().Role == roleStr)
+            {
+                mergedMessages.Last().Content += "\n\n" + m.message;
+            }
+            else
+            {
+                mergedMessages.Add(new Message
+                {
+                    Role = roleStr,
+                    Content = m.message
+                });
+            }
+        }
 
         return JsonUtil.SerializeToJson(new Player2Request
         {
-            Messages = allMessages,
+            Messages = mergedMessages,
             Stream = stream
         });
     }
@@ -154,7 +157,7 @@ public class Player2Client : IAIClient
         webRequest.downloadHandler = downloadHandler;
         webRequest.SetRequestHeader("Content-Type", "application/json");
         webRequest.SetRequestHeader("Authorization", $"Bearer {_apiKey}");
-        webRequest.SetRequestHeader("X-Game-Client-Id", GameClientId);
+        webRequest.SetRequestHeader("player2-game-key", GameClientId);
 
         var asyncOp = webRequest.SendWebRequest();
 
@@ -335,7 +338,7 @@ public class Player2Client : IAIClient
             using var webRequest = new UnityWebRequest($"{RemoteUrl}/v1/health", "GET");
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.SetRequestHeader("Authorization", $"Bearer {_apiKey}");
-            webRequest.SetRequestHeader("X-Game-Client-Id", GameClientId);
+            webRequest.SetRequestHeader("player2-game-key", GameClientId);
 
             var asyncOp = webRequest.SendWebRequest();
             while (!asyncOp.isDone)

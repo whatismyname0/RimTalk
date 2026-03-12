@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using RimTalk.Util;
 using Verse;
 
 namespace RimTalk.Data;
@@ -45,14 +46,29 @@ public static class TalkHistory
         }
     }
 
-    public static List<(Role role, string message)> GetMessageHistory(Pawn pawn)
+    public static List<(Role role, string message)> GetMessageHistory(Pawn pawn, bool simplified = false)
     {
         if (!MessageHistory.TryGetValue(pawn.thingIDNumber, out var history))
             return [];
             
         lock (history)
         {
-            return [..history];
+            var result = new List<(Role role, string message)>();
+            foreach (var msg in history)
+            {
+                var content = msg.message;
+                if (simplified)
+                {
+                    if (msg.role == Role.AI)
+                        content = BuildAssistantHistoryText(content);
+                    
+                    content = CleanHistoryText(content);
+                }
+                
+                if (!string.IsNullOrWhiteSpace(content))
+                    result.Add((msg.role, content));
+            }
+            return result;
         }
     }
 
@@ -74,6 +90,50 @@ public static class TalkHistory
         {
             messages.RemoveAt(0);
         }
+    }
+
+    private static string CleanHistoryText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "";
+        var cleaned = CommonUtil.StripFormattingTags(text);
+        return cleaned.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ").Trim();
+    }
+
+    private static string BuildAssistantHistoryText(string response)
+    {
+        if (string.IsNullOrWhiteSpace(response)) return "";
+
+        var lines = new List<string>();
+        var trimmed = response.Trim();
+        if (trimmed.StartsWith("[") || trimmed.StartsWith("{"))
+        {
+            try
+            {
+                var parsed = JsonUtil.DeserializeFromJson<List<TalkResponse>>(trimmed);
+                if (parsed != null)
+                {
+                    foreach (var r in parsed)
+                    {
+                        if (r == null) continue;
+                        var text = r.Text;
+                        if (string.IsNullOrWhiteSpace(text)) continue;
+                        var name = r.Name;
+                        lines.Add(string.IsNullOrWhiteSpace(name) ? text : $"{name}: {text}");
+                    }
+                }
+            }
+            catch
+            {
+                lines.Clear();
+            }
+        }
+
+        if (lines.Count == 0)
+        {
+            lines.Add(response);
+        }
+
+        return string.Join("\n", lines);
     }
 
     public static void Clear()

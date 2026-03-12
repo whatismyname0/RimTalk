@@ -53,6 +53,22 @@ public static class ContextBuilder
         return null;
     }
 
+    public static string GetAllGenesContext(Pawn pawn, PromptService.InfoLevel infoLevel)
+    {
+        var contextSettings = Settings.Get().Context;
+        if (!contextSettings.IncludeNotableGenes || !ModsConfig.BiotechActive ||
+            pawn.genes?.GenesListForReading == null)
+            return null;
+
+        var genes = pawn.genes.GenesListForReading
+            .Select(g => g.def?.LabelCap.ToString())
+            .Where(label => !string.IsNullOrEmpty(label));
+
+        if (genes.Any())
+            return $"Genes: {string.Join(", ", genes)}";
+        return null;
+    }
+
     public static string GetIdeologyContext(Pawn pawn, PromptService.InfoLevel infoLevel)
     {
         var contextSettings = Settings.Get().Context;
@@ -230,6 +246,23 @@ public static class ContextBuilder
         return null;
     }
 
+    public static string GetAllThoughtsContext(Pawn pawn)
+    {
+        if (pawn?.needs?.mood?.thoughts == null)
+            return null;
+
+        var allThoughts = ContextHelper.GetThoughts(pawn);
+        if (allThoughts.Count == 0)
+            return null;
+
+        var thoughts = allThoughts
+            .OrderBy(kvp => kvp.Key.LabelCap.ToString())
+            .Select(kvp =>
+                $"{CommonUtil.Sanitize(kvp.Key.LabelCap)}({kvp.Value.ToStringWithSign()})");
+
+        return $"Thoughts: {string.Join(", ", thoughts)}";
+    }
+
     public static string GetPrisonerSlaveContext(Pawn pawn, PromptService.InfoLevel infoLevel)
     {
         var contextSettings = Settings.Get().Context;
@@ -273,15 +306,12 @@ public static class ContextBuilder
         {
             sb.Append($"{pawns[1].LabelShort}({pawns[1].GetRole()}) said to {shortName}: '{talkRequest.Prompt}'. ");
 
-            bool isManualPlayerDialogue = pawns[1].IsPlayer() &&
-                                          Settings.Get().PlayerDialogueMode == Settings.PlayerDialogueMode.Manual;
+            var mode = Settings.Get().PlayerDialogueMode;
+            bool multiTurn = mode == Settings.PlayerDialogueMode.AIDriven || (!pawns[1].IsPlayer() && mode != Settings.PlayerDialogueMode.Manual);
 
-            if (isManualPlayerDialogue)
-                sb.Append(
-                    $"Generate dialogue starting after this. Do not generate any further lines for {pawns[1].LabelShort}");
-            else
-                sb.Append(
-                    $"Generate multi turn dialogues starting after this (do not repeat initial dialogue), beginning with {shortName}");
+            sb.Append(multiTurn
+                ? $"Generate multi turn dialogues starting after this (do not repeat initial dialogue), beginning with {shortName}"
+                : $"Generate dialogue starting after this. Do not generate any further lines for {pawns[1].LabelShort}");
         }
         else
         {
