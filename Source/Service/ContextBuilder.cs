@@ -87,6 +87,22 @@ public static class ContextBuilder
         return null;
     }
 
+    public static string GetAllGenesContext(Pawn pawn, PromptService.InfoLevel infoLevel)
+    {
+        var contextSettings = Settings.Get().Context;
+        if (!contextSettings.IncludeNotableGenes || !ModsConfig.BiotechActive ||
+            pawn.genes?.GenesListForReading == null)
+            return null;
+
+        var genes = pawn.genes.GenesListForReading
+            .Select(g => g.def?.LabelCap.ToString())
+            .Where(label => !string.IsNullOrEmpty(label));
+
+        if (genes.Any())
+            return $"Genes: {string.Join(", ", genes)}";
+        return null;
+    }
+
     public static string GetIdeologyContext(Pawn pawn, PromptService.InfoLevel infoLevel)
     {
         var contextSettings = Settings.Get().Context;
@@ -302,6 +318,23 @@ public static class ContextBuilder
             return $"想法: {{ {thoughtsJson} }}";
         }
         return null;
+    }
+
+    public static string GetAllThoughtsContext(Pawn pawn)
+    {
+        if (pawn?.needs?.mood?.thoughts == null)
+            return null;
+
+        var allThoughts = ContextHelper.GetThoughts(pawn);
+        if (allThoughts.Count == 0)
+            return null;
+
+        var thoughts = allThoughts
+            .OrderBy(kvp => kvp.Key.LabelCap.ToString())
+            .Select(kvp =>
+                $"{CommonUtil.Sanitize(kvp.Key.LabelCap)}({kvp.Value.ToStringWithSign()})");
+
+        return $"Thoughts: {string.Join(", ", thoughts)}";
     }
 
     public static string GetPrisonerSlaveContext(Pawn pawn, PromptService.InfoLevel infoLevel)
@@ -539,7 +572,7 @@ public static class ContextBuilder
         }
     }
 
-    private static string FormatTicksAgo(int ticksAgo)
+private static string FormatTicksAgo(int ticksAgo)
     {
         const int ticksPerHour = 2500;
         const int ticksPerDay = 60000;

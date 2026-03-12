@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using RimTalk.Data;
 using RimTalk.Service;
-using RimTalk.Util;
 using Verse;
 
 namespace RimTalk.Prompt;
@@ -39,10 +38,6 @@ public class PromptManager : IExposable
     
     /// <summary>Global variable store (for setvar/getvar)</summary>
     public VariableStore VariableStore = new();
-
-    /// <summary>Cached preset for Simple Mode to avoid recreation on every call</summary>
-    private PromptPreset _simplePresetCache;
-    private string _simplePresetCacheKey = "";
 
     /// <summary>Gets the currently active preset</summary>
     public PromptPreset GetActivePreset()
@@ -150,6 +145,24 @@ public class PromptManager : IExposable
     }
 
     /// <summary>
+    /// Extracts the last user message content from the built messages.
+    /// Used for saving accurate history when using advanced templates.
+    /// </summary>
+    /// <param name="messages">The list of built messages to search</param>
+    /// <returns>The content of the last user message, or empty string if not found</returns>
+    public static string ExtractUserPrompt(List<(Role role, string content)> messages)
+    {
+        if (messages == null || messages.Count == 0)
+            return string.Empty;
+    
+        // Find the last user message
+        var lastUserMessage = messages
+            .LastOrDefault(m => m.role == Role.User);
+    
+        return lastUserMessage.content ?? string.Empty;
+    }
+
+    /// <summary>
     /// Merges consecutive messages with the same role into a single message.
     /// This improves compatibility with APIs that require strict role alternation (e.g., Gemini).
     /// </summary>
@@ -220,11 +233,6 @@ public class PromptManager : IExposable
     // Creates default preset - entry order is determined by list position (drag-to-reorder like SillyTavern)
     private PromptPreset CreateDefaultPreset()
     {
-        var settings = Settings.Get();
-        var baseInstruction = string.IsNullOrWhiteSpace(settings.CustomInstruction)
-            ? Constant.DefaultInstruction
-            : settings.CustomInstruction;
-
         return new PromptPreset
         {
             Name = "RimTalk Default",
@@ -238,14 +246,14 @@ public class PromptManager : IExposable
                     Name = "Base Instruction",
                     Role = PromptRole.System,
                     Position = PromptPosition.Relative,
-                    Content = baseInstruction
+                    Content = Constant.DefaultInstruction
                 },
                 new()
                 {
                     Name = "JSON Format",
                     Role = PromptRole.System,
                     Position = PromptPosition.Relative,
-                    Content = "{{json.format}}"
+                    Content = Constant.JsonInstruction + "\n{{ if settings.ApplyMoodAndSocialEffects }}\n" + Constant.SocialInstruction + "\n{{ end }}"
                 },
                 new()
                 {
@@ -273,29 +281,6 @@ public class PromptManager : IExposable
                 }
             }
         };
-    }
-
-    /// <summary>Migrates legacy custom instruction</summary>
-    public void MigrateLegacyInstruction(string legacyInstruction)
-    {
-        if (string.IsNullOrWhiteSpace(legacyInstruction)) return;
-
-        var preset = GetActivePreset();
-        if (preset == null) return;
-
-        // Check if already migrated
-        if (preset.Entries.Any(e => e.Name == "Legacy Custom Instruction")) return;
-
-        // Insert at second position (after Base Instruction)
-        preset.Entries.Insert(1, new PromptEntry
-        {
-            Name = "Legacy Custom Instruction",
-            Role = PromptRole.System,
-            Position = PromptPosition.Relative,
-            Content = legacyInstruction
-        });
-
-        Logger.Debug("Migrated legacy custom instruction to new prompt system");
     }
 
     /// <summary>Resets to default settings</summary>
@@ -335,6 +320,9 @@ public class PromptManager : IExposable
                         legacyEntry.IsMainChatHistory = true;
                     }
                 }
+
+                preset.Entries.RemoveAll(e =>
+                    string.Equals(e.Name, "Legacy Custom Instruction", StringComparison.OrdinalIgnoreCase));
             }
         }
         
@@ -370,27 +358,37 @@ public class PromptManager : IExposable
         context.DialoguePrompt = talkRequest.Prompt;
         LastContext = context;
 
-        // 3. Select Preset (Active for Advanced, Cached for Simple)
-        PromptPreset preset;
-        if (settings.UseAdvancedPromptMode)
-        {
-            preset = GetActivePreset();
-        }
-        else
-        {
-            var cacheKey = settings.CustomInstruction ?? "";
-            if (_simplePresetCache == null || _simplePresetCacheKey != cacheKey)
-            {
-                _simplePresetCache = CreateDefaultPreset();
-                _simplePresetCacheKey = cacheKey;
-            }
-            preset = _simplePresetCache;
-        }
+        // 3. Select Preset
+        PromptPreset preset = GetActivePreset();
         if (preset == null) preset = CreateDefaultPreset();
 
-        // 4. Build and return
+        string originalBaseContent = null;
+        PromptEntry baseEntry = null;
+
+        if (!settings.UseAdvancedPromptMode)
+        {
+            // Simple Mode: Use active preset but temporarily override Base Instruction
+            baseEntry = preset.Entries.FirstOrDefault(e =>
+                string.Equals(e.Name, "Base Instruction", StringComparison.OrdinalIgnoreCase));
+            
+            if (baseEntry != null)
+            {
+                originalBaseContent = baseEntry.Content;
+                baseEntry.Content = string.IsNullOrWhiteSpace(settings.SimpleModeInstruction) 
+                    ? Constant.DefaultInstruction 
+                    : settings.SimpleModeInstruction;
+            }
+        }
+
+        // 4. Reset session variables and build
+        ScribanParser.ResetSessionVariables();
         var segments = new List<PromptMessageSegment>();
         var messages = BuildMessagesFromPreset(preset, context, segments);
+        
+        if (baseEntry != null && originalBaseContent != null)
+        {
+            baseEntry.Content = originalBaseContent;
+        }
         
         talkRequest.PromptMessageSegments = segments.Count > 0 ? segments : null;
         
@@ -404,64 +402,81 @@ public class PromptManager : IExposable
     {
         var result = new List<(PromptRole role, string content)>();
         int lastHistoryIndex = 0;
+        int systemBoundary = 0;
+        bool boundarySet = false;
 
-        // 1. Process System entries first (Merged)
-        var systemParts = preset.Entries
-            .Where(e => e.Enabled && e.Role == PromptRole.System && e.Position == PromptPosition.Relative)
-            .Select(e => new { e, content = ScribanParser.Render(e.Content, context) })
-            .Where(x => !string.IsNullOrWhiteSpace(x.content))
-            .ToList();
-
-        foreach (var item in systemParts)
+        static PromptRole GetEffectiveRole(PromptEntry entry)
         {
-            segments?.Add(new PromptMessageSegment(item.e.Id, item.e.Name, Role.System, item.content));
+            return string.IsNullOrWhiteSpace(entry.CustomRole) ? entry.Role : PromptRole.User;
         }
 
-        if (systemParts.Count > 0)
+        static string ApplyCustomRolePrefix(PromptEntry entry, string content)
         {
-            result.Add((PromptRole.System, string.Join("\n\n", systemParts.Select(x => x.content))));
+            if (string.IsNullOrWhiteSpace(entry.CustomRole)) return content;
+            return $"[role: {entry.CustomRole}]\n{content}";
         }
-        
-        int systemBoundary = result.Count; // Ensure nothing is inserted above this index
-        lastHistoryIndex = result.Count;
 
-        // 2. Process Relative entries (History/Prompt)
-        foreach (var entry in preset.Entries.Where(e => e.Enabled && e.Role != PromptRole.System && e.Position == PromptPosition.Relative))
+        // 1. Process Relative entries in defined order (System/History/Prompt)
+        foreach (var entry in preset.Entries.Where(e => e.Enabled && e.Position == PromptPosition.Relative))
         {
             if (entry.IsMainChatHistory)
             {
-                if (context.ChatHistory != null)
+                // Detect variant from content
+                var marker = entry.Content.Trim().ToLowerInvariant();
+                List<(Role role, string message)> history;
+
+                if (marker.Contains("history_simplified")) history = context.GetChatHistory(simplified: true);
+                else history = context.ChatHistory; 
+
+                if (history != null)
                 {
-                    foreach (var (role, message) in context.ChatHistory)
+                    foreach (var (role, message) in history)
                     {
                         var pRole = (PromptRole)role;
                         result.Add((pRole, message));
                         segments?.Add(new PromptMessageSegment(entry.Id, entry.Name ?? "History", role, message));
                     }
                 }
-                lastHistoryIndex = result.Count; // Anchor point set to end of history
+                
+                if (!boundarySet) { systemBoundary = result.Count; boundarySet = true; }
+                lastHistoryIndex = result.Count;
                 continue;
             }
 
             var content = ScribanParser.Render(entry.Content, context);
             if (!string.IsNullOrWhiteSpace(content))
             {
-                result.Add((entry.Role, content));
-                segments?.Add(new PromptMessageSegment(entry.Id, entry.Name ?? "Entry", (Role)entry.Role, content));
+                var role = GetEffectiveRole(entry);
+                var finalContent = ApplyCustomRolePrefix(entry, content);
+                
+                result.Add((role, finalContent));
+                segments?.Add(new PromptMessageSegment(entry.Id, entry.Name ?? "Entry", (Role)role, finalContent));
+                
+                // systemBoundary is the end of the initial continuous block of system messages
+                if (!boundarySet && role != PromptRole.System)
+                {
+                    systemBoundary = result.Count - 1;
+                    boundarySet = true;
+                }
             }
         }
+        
+        if (!boundarySet) systemBoundary = result.Count;
 
-        // 3. Process InChat entries (Anchored to History)
+        // 2. Process InChat entries (Anchored to History)
         foreach (var entry in preset.GetInChatEntries())
         {
             var content = ScribanParser.Render(entry.Content, context);
             if (!string.IsNullOrWhiteSpace(content))
             {
+                var role = GetEffectiveRole(entry);
+                var finalContent = ApplyCustomRolePrefix(entry, content);
+                
                 // Calculate position relative to history end, clamped by system boundary
                 var insertIndex = Math.Max(systemBoundary, lastHistoryIndex - entry.InChatDepth);
                 
-                result.Insert(insertIndex, (entry.Role, content));
-                segments?.Insert(insertIndex, new PromptMessageSegment(entry.Id, entry.Name ?? "Entry", (Role)entry.Role, content));
+                result.Insert(insertIndex, (role, finalContent));
+                segments?.Insert(insertIndex, new PromptMessageSegment(entry.Id, entry.Name ?? "Entry", (Role)role, finalContent));
                 
                 // Shift anchor and boundary forward since we increased the list size
                 if (insertIndex <= lastHistoryIndex) lastHistoryIndex++;

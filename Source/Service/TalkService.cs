@@ -80,6 +80,13 @@ public static class TalkService
         talkRequest.PromptMessages = PromptManager.Instance.BuildMessages(talkRequest, pawns, status);
         
         ContextHelper.ProcessItemQualityLabel(talkRequest);
+        
+        // Update prompt with the actual rendered content (important for Advanced Mode history)
+        var extracted = PromptManager.ExtractUserPrompt(talkRequest.PromptMessages);
+        if (!string.IsNullOrEmpty(extracted))
+        {
+            talkRequest.Prompt = extracted;
+        }
 
         // Offload the AI request and processing to a background thread to avoid blocking the game's main thread.
         Task.Run(() => GenerateAndProcessTalkAsync(talkRequest));

@@ -109,12 +109,49 @@ public static class PawnUtil
 
     public static bool IsVisitor(this Pawn pawn)
     {
-        return pawn?.Faction != null && pawn.Faction != Faction.OfPlayer && !pawn.HostileTo(Faction.OfPlayer) && !pawn.IsPrisoner;
+        return pawn?.Faction != null && Faction.OfPlayer != null && pawn.Faction != Faction.OfPlayer && !pawn.HostileTo(Faction.OfPlayer) && !pawn.IsPrisoner;
+    }
+
+    public static string GetTitle(this Pawn pawn)
+    {
+        if (pawn == null) return "";
+
+        RoyalTitleDef titleDef = null;
+        Faction titleFaction = null;
+        if (pawn.royalty != null)
+        {
+            var mostSenior = pawn.royalty.MostSeniorTitle;
+            if (mostSenior != null)
+            {
+                titleDef = mostSenior.def;
+                titleFaction = mostSenior.faction;
+            }
+
+            if (titleDef == null && Faction.OfEmpire != null)
+            {
+                titleDef = pawn.royalty.GetCurrentTitle(Faction.OfEmpire);
+                titleFaction = titleDef != null ? Faction.OfEmpire : null;
+            }
+
+            if (titleDef == null && Faction.OfPlayer != null && pawn.Faction != null)
+            {
+                titleDef = pawn.royalty.GetCurrentTitle(pawn.Faction);
+                titleFaction = titleDef != null ? pawn.Faction : null;
+            }
+        }
+
+        if (titleDef != null)
+        {
+            var titleLabel = titleDef.GetLabelFor(pawn);
+            return titleFaction != null ? $"{titleFaction.Name}: {titleLabel}" : titleLabel;
+        }
+
+        return pawn.story?.title ?? "";
     }
 
     public static bool IsEnemy(this Pawn pawn)
     {
-        return pawn != null && pawn.HostileTo(Faction.OfPlayer) && !pawn.IsPrisoner;
+        return pawn != null && Faction.OfPlayer != null && pawn.HostileTo(Faction.OfPlayer) && !pawn.IsPrisoner;
     }
 
     public static bool IsBaby(this Pawn pawn)
@@ -466,6 +503,9 @@ public static class PawnUtil
 
     private static bool IsValidThreat(Pawn observer, Pawn threat)
     {
+        if (Faction.OfPlayer == null)
+            return true;
+
         // Filter out prisoners/slaves as threats to colonists
         if (threat.IsPrisoner && threat.HostFaction == Faction.OfPlayer)
             return false;
@@ -591,8 +631,11 @@ public static class PawnUtil
         Map map = pawn.Map;
         Faction mapFaction = map.ParentFaction;
 
-        if (mapFaction == pawn.Faction || (map.IsPlayerHome && pawn.Faction == Faction.OfPlayer))
+        if (mapFaction == pawn.Faction || (map.IsPlayerHome && Faction.OfPlayer != null && pawn.Faction == Faction.OfPlayer))
             return MapRole.Defending;
+
+        if (pawn.Faction == null || mapFaction == null)
+            return MapRole.Visiting;
 
         if (pawn.Faction.HostileTo(mapFaction))
             return MapRole.Invading;

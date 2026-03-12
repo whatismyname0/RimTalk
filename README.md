@@ -23,7 +23,7 @@
     </h3>
 </html>
 
-> Latest Update: 01/16/2026
+> Latest Update: 01/20/2026
 
 ## 1. Overview
 
@@ -134,6 +134,8 @@ Example JSON prompt template:
 }
 ```
 
+Please check more presets in [PreSetList](preset.md)
+
 ## 6. Providers & Models
 
 <a id="6"></a>
@@ -147,6 +149,7 @@ Only the hard-coded provider endpoints are listed here. Custom providers (Anthro
 | DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `https://api.deepseek.com/models` |  |
 | Grok (xAI) | `https://api.x.ai/v1/chat/completions` | `https://api.x.ai/v1/models` |  |
 | GLM (zAI) | `https://api.z.ai/api/paas/v4/chat/completions` | `https://api.z.ai/api/paas/v4/models` |  |
+| GLM (zAI Coding Plan) | `https://api.z.ai/api/coding/paas/v4/chat/completions` | `https://api.z.ai/api/coding/paas/v4/models` |  |
 | OpenRouter | `https://openrouter.ai/api/v1/chat/completions` | `https://openrouter.ai/api/v1/models` | Adds `HTTP-Referer` and `X-Title` headers |
 | Qwen (Intl) | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions` | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models` |  |
 | Qwen (CN) | `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` | `https://dashscope.aliyuncs.com/compatible-mode/v1/models` |  |

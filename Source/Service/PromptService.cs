@@ -95,7 +95,7 @@ public static class PromptService
         // Each section applies hooks via AppendWithHook
         AppendWithHook(sb, pawn, ContextCategories.Pawn.Health, ContextBuilder.GetHealthContext(pawn, infoLevel));
 
-        var personality = Cache.Get(pawn).Personality;
+        var personality = Cache.Get(pawn)?.Personality;
         if (personality != null)
             sb.AppendLine($"角色描述: {personality}");
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using RimTalk.Util;
@@ -139,7 +140,7 @@ public static class RelationsService
         {
             // Remove the trailing comma and space
             relationsSb.Length -= 2;
-            return $"人际关系: {{ {relationsSb} }}";
+            return "Relations: " + relationsSb;
         }
 
         return "";
