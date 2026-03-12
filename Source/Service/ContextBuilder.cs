@@ -31,6 +31,22 @@ public static class ContextBuilder
         if (level <= 19) return "闻名遐迩";
         return "举世罕见";
     }
+    private static string GetPassionLevelDescription(Passion passion)
+    {
+        return passion switch
+        {
+            Passion.None => "",
+            Passion.Minor => "、好奇",
+            Passion.Major => "、狂热",
+            _ => passion.ToString() switch
+            {
+                "VSE_Apathy" => "、厌烦",
+                "VSE_Natural" => "、恃才",
+                "VSE_Critical" => "、偏长",
+                _ => ""
+            }
+        };
+    }
 
     public static string GetRaceContext(Pawn pawn, PromptService.InfoLevel infoLevel)
     {
@@ -186,7 +202,7 @@ public static class ContextBuilder
         var skills = pawn.skills?.skills;
         if (skills?.Any() == true)
         {
-            var skillsJson = string.Join(",", skills.Select(s => $"{s.def.label}: {GetSkillLevelDescription(s.Level)}"));
+            var skillsJson = string.Join(";", skills.Select(s => $"{s.def.label}: {GetSkillLevelDescription(s.Level)}{GetPassionLevelDescription(s.passion)}"));
             return $"技能等级: {{ {skillsJson} }}";
         }
         return null;
@@ -366,6 +382,21 @@ public static class ContextBuilder
 
         if (talkRequest.TalkType.IsFromUser())
         {
+            // "." shortcut: prompt is null/empty and no recipient → treat as regular conversation
+            if (string.IsNullOrEmpty(talkRequest.Prompt) && talkRequest.Recipient == null)
+            {
+                if (pawns.Count == 1)
+                    sb.Append($"生成 {shortName} 连续的多次独白发言, \"name\"字段应该全为 \"{shortName}\".");
+                else
+                    sb.Append($"从 {shortName} 开始与他人的多次轮流发言.");
+
+                if (mainPawn.InMentalState)
+                    sb.Append("\n(这人崩溃了,发言不讲逻辑)");
+                else if (mainPawn.Downed && !mainPawn.IsBaby())
+                    sb.Append("\n(这人倒地了,发言虚弱不清)");
+                return;
+            }
+
             if (pawns.Count < 2)
             {
                 Log.Warning("[RimTalk] BuildDialogueType: pawns list must have at least 2 elements for user dialogue");
@@ -508,6 +539,26 @@ public static class ContextBuilder
         }
     }
 
+    private static string FormatTicksAgo(int ticksAgo)
+    {
+        const int ticksPerHour = 2500;
+        const int ticksPerDay = 60000;
+        const int ticksPerQuadrum = 900000;
+        const int ticksPerYear = 3600000;
+
+        if (ticksAgo >= ticksPerYear)
+            return $"{ticksAgo / ticksPerYear}年前";
+        if (ticksAgo >= ticksPerQuadrum)
+            return $"{ticksAgo / ticksPerQuadrum}象前";
+        if (ticksAgo >= ticksPerDay)
+            return $"{ticksAgo / ticksPerDay}日前";
+        if (ticksAgo >= ticksPerHour)
+            return $"{ticksAgo / ticksPerHour}时前";
+
+        int seconds = ticksAgo * 3600 / ticksPerHour;
+        return $"{Math.Max(1, seconds)}秒前";
+    }
+
     public static string GetRecentLogsContext(Pawn pawn, PromptService.InfoLevel infoLevel)
     {
         var contextSettings = Settings.Get().Context;
@@ -606,18 +657,98 @@ public static class ContextBuilder
             }
         }
 
-        if (!recentItems.Any()) return null;
-
         // Sort by time (most recent first)
         recentItems.Reverse();
         recentItems = recentItems.OrderByDescending(item => item.ticksAgo).ToList();
 
-        // If infoLevel is Normal or Short, limit to 5 most recent items
+        // If infoLevel is Normal or Short, limit to 8 most recent items
         recentItems = recentItems.TakeLast(8).ToList();
+
+        // Collect 5 most recent non-RimTalk entries (independently counted, non-duplicate)
+        var existingContents = new HashSet<string>(recentItems.Select(r => r.content));
+        var extraItems = new List<(string content, int ticksAgo)>();
+
+        if (playLogEntries != null)
+        {
+            foreach (var entry in playLogEntries)
+            {
+                if (entry == null) continue;
+
+                int entryTicks = (int)ticksField.GetValue(entry);
+                int ticksAgo = currentTick - entryTicks;
+                if (ticksAgo < 0) continue;
+
+                var concerns = entry.GetConcerns();
+                if (!concerns.OfType<Pawn>().Contains(pawn)) continue;
+
+                string title = entry.GetType().Name;
+                var intDefField2 = entry.GetType().GetField("intDef", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (intDefField2 != null)
+                {
+                    var intDef = intDefField2.GetValue(entry) as InteractionDef;
+                    if (intDef != null) title = intDef.label;
+                }
+
+                string content;
+                try { content = entry.ToGameStringFromPOV(pawn).StripTags(); }
+                catch { content = entry.ToString(); }
+
+                var fullContent = $"{title}: {content}";
+
+                // Skip RimTalk entries
+                if (fullContent.Contains("(最近的对话)")) continue;
+                // Skip duplicates with existing entries
+                if (existingContents.Contains(fullContent)) continue;
+
+                extraItems.Add((fullContent, ticksAgo));
+                existingContents.Add(fullContent);
+            }
+        }
+
+        if (battleLogEntries != null)
+        {
+            foreach (var battle in battleLogEntries)
+            {
+                if (battle?.Entries == null) continue;
+
+                foreach (var entry in battle.Entries)
+                {
+                    if (entry == null) continue;
+
+                    int entryTicks = (int)ticksField.GetValue(entry);
+                    int ticksAgo = currentTick - entryTicks;
+                    if (ticksAgo < 0) continue;
+
+                    var concerns = entry.GetConcerns();
+                    if (!concerns.OfType<Pawn>().Contains(pawn)) continue;
+
+                    string content;
+                    try { content = entry.ToGameStringFromPOV(pawn).StripTags(); }
+                    catch { content = entry.ToString(); }
+
+                    if (content.Contains("(最近的对话)")) continue;
+                    if (existingContents.Contains(content)) continue;
+
+                    extraItems.Add((content, ticksAgo));
+                    existingContents.Add(content);
+                }
+            }
+        }
+
+        // Take 5 most recent, then sort oldest-first for display
+        extraItems = extraItems.OrderBy(e => e.ticksAgo).Take(5).OrderByDescending(e => e.ticksAgo).ToList();
+
+        if (!recentItems.Any() && !extraItems.Any()) return null;
 
         var sb = new StringBuilder();
         sb.Append("Recent Actions (chronological order, oldest to newest):\n{");
-        
+
+        // Prepend 5 non-RimTalk entries with elapsed time prefix
+        foreach (var item in extraItems)
+        {
+            sb.AppendLine().Append($"({FormatTicksAgo(item.ticksAgo)}) {item.content}");
+        }
+
         for (int i = 0; i < recentItems.Count; i++)
         {
             var item = recentItems[i];

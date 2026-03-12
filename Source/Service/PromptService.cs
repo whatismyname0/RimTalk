@@ -259,72 +259,114 @@ public static class PromptService
         return sb.ToString().TrimEnd();
     }
 
+    private static string GetPawnRaceLabel(Pawn pawn)
+    {
+        return ModsConfig.BiotechActive && pawn.genes?.Xenotype != null
+            ? $"{pawn.def.LabelCap.RawText} - {pawn.genes.XenotypeLabel}"
+            : pawn.def.LabelCap.RawText;
+    }
+
+    private static void AddPawnToCategory(Dictionary<string, Dictionary<string, Dictionary<string, int>>> category, string factionName, string status, Pawn pawn)
+    {
+        if (!category.ContainsKey(factionName))
+            category[factionName] = new Dictionary<string, Dictionary<string, int>>();
+
+        if (!category[factionName].ContainsKey(status))
+            category[factionName][status] = new Dictionary<string, int>();
+
+        var raceLabel = GetPawnRaceLabel(pawn);
+        if (!category[factionName][status].ContainsKey(raceLabel))
+            category[factionName][status][raceLabel] = 0;
+        category[factionName][status][raceLabel]++;
+    }
+
     private static string BuildOtherPawnInfo()
     {
         var map = Find.CurrentMap;
         if (map == null)
             return string.Empty;
 
-        var prisoners = new Dictionary<string, int>();
-        var slaves = new Dictionary<string, int>();
-        var enemies = new Dictionary<string, int>();
-        var visitors = new Dictionary<string, int>();
+        // faction -> (status -> (race -> count))
+        var colonists = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>();
+        var prisoners = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>();
+        var slaves = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>();
+        var enemies = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>();
+        var visitors = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>();
 
         foreach (var pawn in map.mapPawns.AllPawnsSpawned)
         {
             if (pawn == null || (!pawn.RaceProps.Humanlike && !pawn.RaceProps.ToolUser))
                 continue;
 
-            // 排除玩家殖民者
+            var factionName = pawn.Faction?.Name ?? "无势力";
+            var status = pawn.Downed ? "倒地无法行动" : "可行动";
+
             if (pawn.IsColonist && !pawn.IsPrisoner && !pawn.IsSlaveOfColony)
+                AddPawnToCategory(colonists, factionName, status, pawn);
+            else if (pawn.IsPrisoner)
+                AddPawnToCategory(prisoners, factionName, status, pawn);
+            else if (pawn.IsSlaveOfColony)
+                AddPawnToCategory(slaves, factionName, status, pawn);
+            else if (pawn.HostileTo(Faction.OfPlayer))
+                AddPawnToCategory(enemies, factionName, status, pawn);
+            else if (pawn.Faction != Faction.OfPlayer)
+                AddPawnToCategory(visitors, factionName, status, pawn);
+        }
+
+        // 扫描地图上的尸体
+        foreach (var thing in map.listerThings.ThingsInGroup(ThingRequestGroup.Corpse))
+        {
+            if (thing is not Corpse corpse)
+                continue;
+
+            var pawn = corpse.InnerPawn;
+            if (pawn == null || (!pawn.RaceProps.Humanlike && !pawn.RaceProps.ToolUser))
                 continue;
 
             var factionName = pawn.Faction?.Name ?? "无势力";
-
-            if (pawn.IsPrisoner)
-            {
-                if (!prisoners.ContainsKey(factionName))
-                    prisoners[factionName] = 0;
-                prisoners[factionName]++;
-            }
+            const string status = "尸体";
+            if (pawn.IsColonist && !pawn.IsPrisoner && !pawn.IsSlaveOfColony)
+                AddPawnToCategory(colonists, factionName, status, pawn);
+            else if (pawn.IsPrisoner)
+                AddPawnToCategory(prisoners, factionName, status, pawn);
             else if (pawn.IsSlaveOfColony)
-            {
-                if (!slaves.ContainsKey(factionName))
-                    slaves[factionName] = 0;
-                slaves[factionName]++;
-            }
-            else if (pawn.HostileTo(Faction.OfPlayer))
-            {
-                if (!enemies.ContainsKey(factionName))
-                    enemies[factionName] = 0;
-                enemies[factionName]++;
-            }
+                AddPawnToCategory(slaves, factionName, status, pawn);
+            else if (pawn.Faction != null && pawn.Faction.HostileTo(Faction.OfPlayer))
+                AddPawnToCategory(enemies, factionName, status, pawn);
             else if (pawn.Faction != Faction.OfPlayer)
-            {
-                if (!visitors.ContainsKey(factionName))
-                    visitors[factionName] = 0;
-                visitors[factionName]++;
-            }
+                AddPawnToCategory(visitors, factionName, status, pawn);
         }
 
-        if (prisoners.Count == 0 && slaves.Count == 0 && enemies.Count == 0 && visitors.Count == 0)
+        if (prisoners.Count == 0 && slaves.Count == 0 && enemies.Count == 0 && visitors.Count == 0 && colonists.Count == 0)
             return string.Empty;
 
         var sb = new StringBuilder();
-        sb.AppendLine("当前地图其他势力角色计数:{");
+        sb.AppendLine("当前地图角色计数:{");
 
-        var sections = new List<(string title, Dictionary<string, int> data)>();
+        var sections = new List<(string title, Dictionary<string, Dictionary<string, Dictionary<string, int>>> data)>();
+        if (colonists.Count > 0) sections.Add(("殖民者", colonists));
         if (prisoners.Count > 0) sections.Add(("囚犯", prisoners));
         if (slaves.Count > 0) sections.Add(("奴隶", slaves));
         if (enemies.Count > 0) sections.Add(("敌人", enemies));
         if (visitors.Count > 0) sections.Add(("访客及住宿访客", visitors));
-
         for (int i = 0; i < sections.Count; i++)
         {
             var (title, data) = sections[i];
             sb.AppendLine($"  {title}:{{");
-            foreach (var kvp in data)
-                sb.AppendLine($"    {kvp.Key}: {kvp.Value}人,");
+            foreach (var factionKvp in data)
+            {
+                int totalCount = factionKvp.Value.Values.SelectMany(r => r.Values).Sum();
+                sb.AppendLine($"    {factionKvp.Key}({totalCount}人):{{");
+                foreach (var statusKvp in factionKvp.Value)
+                {
+                    int statusCount = statusKvp.Value.Values.Sum();
+                    sb.AppendLine($"        {statusKvp.Key}({statusCount}人):{{");
+                    foreach (var race in statusKvp.Value)
+                        sb.AppendLine($"            {race.Key}: {race.Value}人,");
+                    sb.AppendLine("        },");
+                }
+                sb.AppendLine("    },");
+            }
             var ending = i == sections.Count - 1 ? "  }" : "  },";
             sb.AppendLine(ending);
         }

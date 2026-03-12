@@ -196,7 +196,7 @@ public static class JsonUtil
             sanitized = RemoveEmbeddedQuotesInStringValues(sanitized);
         }
 
-        return sanitized;
+        return sanitized.Replace("\",\",", "\",");
     }
 
     /// <summary>

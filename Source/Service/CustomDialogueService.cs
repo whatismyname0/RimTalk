@@ -58,10 +58,17 @@ public static class CustomDialogueService
     public static void ExecuteDialogue(Pawn initiator, Pawn recipient, string message)
     {
         PawnState initiatorState = Cache.Get(initiator);
+        PawnState recipientState = Cache.Get(recipient);
         if (initiatorState == null || !initiatorState.CanDisplayTalk())
             return;
 
-        PawnState recipientState = Cache.Get(recipient);
+        // "." triggers a general conversation starting from the target pawn,
+        // without recording any player dialogue.
+        if (message.Trim() == ".")
+        {
+            recipientState?.AddTalkRequest(null, null, TalkType.User);
+            return;
+        }
         if (recipientState != null && recipientState.CanDisplayTalk())
             recipientState.AddTalkRequest(message, initiator, TalkType.User);
 

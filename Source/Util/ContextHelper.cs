@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using RimTalk.Data;
 using RimWorld;
@@ -165,12 +166,26 @@ public static class ContextHelper
         // PRIORITY PASS: Collect corpses with expanded range
         // Indoor (same room) or Outdoor (40 unit radius)
         var room = pawn.GetRoom();
-        var sameRoomOnly = room is { PsychologicallyOutdoors: false };
-        var corpseSearchDistance = sameRoomOnly ? 100 : 40; // Use large distance for indoor to cover entire room
-        var corpseCells = GetNearbyCellsRadial(pawn, corpseSearchDistance, sameRoomOnly);
+        var isIndoors = room is { PsychologicallyOutdoors: false };
+        var corpseSearchDistance = isIndoors ? 100 : 40; // Use large distance for indoor to cover entire room
+        var corpseCells = GetNearbyCellsRadial(pawn, corpseSearchDistance, isIndoors);
         
         foreach (var cell in corpseCells)
         {
+            // When outdoors, skip cells that are indoors
+            if (!isIndoors)
+            {
+                var cellRoom = cell.GetRoom(map);
+                if (cellRoom is { PsychologicallyOutdoors: false })
+                    continue;
+            }
+            else
+            {
+                var cellRoom = cell.GetRoom(map);
+                if (cellRoom != room)
+                    continue;
+            }
+
             var thingsHere = cell.GetThingList(map);
             if (thingsHere == null || thingsHere.Count == 0)
                 continue;
@@ -220,6 +235,20 @@ public static class ContextHelper
 
         foreach (var cell in cells)
         {
+            // When outdoors, skip cells that are indoors
+            if (!isIndoors)
+            {
+                var cellRoom = cell.GetRoom(map);
+                if (cellRoom is { PsychologicallyOutdoors: false })
+                    continue;
+            }
+            else
+            {
+                var cellRoom = cell.GetRoom(map);
+                if (cellRoom != room)
+                    continue;
+            }
+
             var thingsHere = cell.GetThingList(map);
             if (thingsHere == null || thingsHere.Count == 0)
                 continue;
@@ -390,5 +419,35 @@ DONE:
     {
         var aggs = CollectNearbyContext(pawn, distance, maxPerKind, maxCellsToScan, maxThingsTotal, maxItemThings);
         return FormatNearbyContext(aggs);
+    }
+
+    public static void ProcessItemQualityLabel(TalkRequest talkRequest)
+    {
+        talkRequest.Context = ProcessItemQualityLabelString(talkRequest.Context);
+        talkRequest.Prompt = ProcessItemQualityLabelString(talkRequest.Prompt);
+
+        foreach (var segment in talkRequest.PromptMessageSegments ?? new List<PromptMessageSegment>())
+        {
+            segment.Content = ProcessItemQualityLabelString(segment.Content);
+        }
+
+        var messages = talkRequest.PromptMessages ?? new List<(Role role, string content)>();
+        for (int i = 0; i < messages.Count; i++)
+        {
+            messages[i] = (messages[i].role, ProcessItemQualityLabelString(messages[i].content));
+        }
+    }
+
+    private static string ProcessItemQualityLabelString(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "";
+        
+        return text.Replace("(极差", "(质量特别差")
+            .Replace("(较差", "(质量有点差")
+            .Replace("(一般", "(质量平平常常")
+            .Replace("(良好", "(质量还不错")
+            .Replace("(极佳", "(质量非常好")
+            .Replace("(大师级", "(质量接近完美")
+            .Replace("(传奇级", "(质量完美，注定成为传奇");
     }
 }

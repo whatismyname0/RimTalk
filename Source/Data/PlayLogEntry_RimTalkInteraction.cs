@@ -21,7 +21,7 @@ public class PlayLogEntry_RimTalkInteraction : PlayLogEntry_Interaction
         List<RulePackDef> rules)
         : base(interactionDef, initiator, recipient, rules)
     {
-        _cachedString = TalkService.GetTalk(initiator);
+        _cachedString = $"(最近的对话){initiator.LabelShort}: {TalkService.GetTalk(initiator)}";
     }
 
     public Pawn Initiator => initiator;

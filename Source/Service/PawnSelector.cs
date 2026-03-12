@@ -30,11 +30,15 @@ public class PawnSelector
 
         return Cache.Keys
             .Where(p => p != pawn1 && p != pawn2)
+            .Where(p => p.Map == pawn1.Map)
             .Where(p => !onlyTalkable || Cache.Get(p).CanGenerateTalk())
-            .Where(p => p.health.capacities.GetLevel(capacityDef) > 0.0)
+            .Where(p => p.health.capacities.GetLevel(capacityDef) > 0.0 || p.Downed)
             .Where(p =>
             {
                 var capacityLevel = p.health.capacities.GetLevel(capacityDef);
+                // Downed/immobile pawns are physically present and visible; use fallback range
+                if (p.Downed)
+                    capacityLevel = 1f;
                 
                 bool nearPawn1;
                 if (pawn1Indoors)
@@ -45,7 +49,7 @@ public class PawnSelector
                 else
                 {
                     // Outdoor: within 40 unit radius
-                    nearPawn1 = p.Position.InHorDistOf(pawn1.Position, OutdoorRange * capacityLevel);
+                    nearPawn1 = p.Position.InHorDistOf(pawn1.Position, OutdoorRange * capacityLevel) && p.GetRoom() is { PsychologicallyOutdoors: true };
                 }
 
                 if (pawn2 == null) return nearPawn1;
@@ -62,7 +66,7 @@ public class PawnSelector
                 else
                 {
                     // Outdoor: within 40 unit radius
-                    nearPawn2 = p.Position.InHorDistOf(pawn2.Position, OutdoorRange * capacityLevel);
+                    nearPawn2 = p.Position.InHorDistOf(pawn2.Position, OutdoorRange * capacityLevel) && p.GetRoom() is { PsychologicallyOutdoors: true };
                 }
 
                 return nearPawn1 || nearPawn2;
